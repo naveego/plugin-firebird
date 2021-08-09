@@ -1,0 +1,83 @@
+{
+  "id": "plugin-firebird",
+  "displayName": "Firebird",
+  "description": "Publisher which connects to Firebird",
+  "apiVersion": "2",
+  "versionDescription": "Version 2",
+  "version": "1.0.0",
+  "iconFile": "icon.png",
+  "executable": "PluginFirebird",
+  "kind": "publisher",
+  "os": "$GOOS",
+  "arch": "$GOARCH",
+  "accessGroups": [],
+  "canConfigure": true,
+  "canProduceMultipleSchemas": true,
+  "canAcceptQueryBasedSchemas": true,
+  "canUseOAuth": false,
+  "canConfigureWrite": true,
+  "canWrite": true,
+  "canConfigureReplication": true,
+  "canWriteReplication": true,
+  "querySchema": {
+    "ui": {
+      "ui:widget": "code",
+      "ui:options": {
+        "language": "sql"
+      }
+    },
+    "schema": {
+      "type": "string"
+    }
+  },
+  "configSchema": {
+    "ui": {
+      "ui:order": [
+        "Hostname",
+        "Port",
+        "Database",
+        "Username",
+        "Password"
+      ],
+      "Password": {
+        "ui:widget": "password"
+      }
+    },
+    "schema": {
+      "type": "object",
+      "properties": {
+        "Hostname" : {
+          "type": "string",
+          "title": "Hostname",
+          "description": "The hostname of the Firebird Server"
+        },
+        "Port": {
+          "type": "string",
+          "title": "Port",
+          "description": "The port of the Firebird Server"
+        },
+        "Username": {
+          "type": "string",
+          "title": "Username",
+          "description": "The username to use for authentication"
+        },
+        "Password": {
+          "type": "string",
+          "title": "Password",
+          "description": "The password to use for authentication"
+        },
+        "Database": {
+          "type": "string",
+          "title": "Database",
+          "description": "The Database within the Firebird Server"
+        }
+      },
+      "required": [
+        "Hostname",
+        "Username",
+        "Password",
+        "Database"
+      ]
+    }
+  }
+}
