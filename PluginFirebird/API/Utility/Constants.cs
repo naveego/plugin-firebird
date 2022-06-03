@@ -21,31 +21,31 @@ namespace PluginFirebird.API.Utility
             new ReplicationColumn
             {
                 ColumnName = ReplicationMetaDataJobId,
-                DataType = "varchar(255)",
+                DataType = "VARCHAR(255)",
                 PrimaryKey = true
             },
             new ReplicationColumn
             {
                 ColumnName = ReplicationMetaDataRequest,
                 PrimaryKey = false,
-                DataType = "longtext"
+                DataType = "BLOB SUB_TYPE 1"
             },
             new ReplicationColumn
             {
                 ColumnName = ReplicationMetaDataReplicatedShapeId,
-                DataType = "varchar(255)",
+                DataType = "VARCHAR(255)",
                 PrimaryKey = false
             },
             new ReplicationColumn
             {
                 ColumnName = ReplicationMetaDataReplicatedShapeName,
-                DataType = "longtext",
+                DataType = "BLOB SUB_TYPE 1",
                 PrimaryKey = false
             },
             new ReplicationColumn
             {
                 ColumnName = ReplicationMetaDataTimestamp,
-                DataType = "varchar(255)",
+                DataType = "VARCHAR(255)",
                 PrimaryKey = false
             }
         };

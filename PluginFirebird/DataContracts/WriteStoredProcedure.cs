@@ -4,13 +4,14 @@ namespace PluginFirebird.DataContracts
 {
     public class WriteStoredProcedure
     {
-        public string SchemaName { get; set; }
-        public string RoutineName { get; set; }
-        public string SpecificName { get; set; }
+        //public string SchemaName { get; set; }
+        public string ProcedureName { get; set; }
+        public string ProcedureId { get; set; }
 
-        public string GetId()
+        public string GetName()
         {
-            return $"{Utility.GetSafeName(SchemaName)}.{Utility.GetSafeName(RoutineName)}";
+            //return $"{Utility.GetSafeName(SchemaName)}.{Utility.GetSafeName(RoutineName)}";
+            return Utility.GetSafeName(ProcedureName).Trim();
         }
     }
 }

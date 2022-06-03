@@ -8,8 +8,8 @@ namespace PluginFirebird.API.Replication
     {
         private static readonly string RecordExistsQuery = @"SELECT COUNT(*) as c
 FROM (
-SELECT * FROM {0}.{1}
-WHERE {2} = '{3}'    
+SELECT * FROM {0}
+WHERE {1} = '{2}'    
 ) as q";
 
         public static async Task<bool> RecordExistsAsync(IConnectionFactory connFactory, ReplicationTable table,
@@ -22,9 +22,10 @@ WHERE {2} = '{3}'
                 await conn.OpenAsync();
             
                 var cmd = connFactory.GetCommand(string.Format(RecordExistsQuery,
-                        Utility.Utility.GetSafeName(table.SchemaName, '`'),
-                        Utility.Utility.GetSafeName(table.TableName, '`'),
-                        Utility.Utility.GetSafeName(table.Columns.Find(c => c.PrimaryKey == true).ColumnName, '`'),
+                        // --- Note: Firebird DBs only support single-schema databases (multiple tables)
+                        //Utility.Utility.GetSafeName(table.SchemaName, '"'),
+                        Utility.Utility.GetSafeName(table.TableName, '"'),
+                        Utility.Utility.GetSafeName(table.Columns.Find(c => c.PrimaryKey == true).ColumnName, '"'),
                         primaryKeyValue
                     ),
                     conn);

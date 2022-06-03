@@ -310,7 +310,7 @@ namespace PluginFirebird.Plugin
             {
                 // get form data
                 var formData = JsonConvert.DeserializeObject<ConfigureWriteFormData>(request.Form.DataJson);
-                var storedProcedure = storedProcedures.Find(s => s.GetId() == formData.StoredProcedure);
+                var storedProcedure = storedProcedures.Find(s => s.GetName() == formData.StoredProcedure);
 
                 // base schema to return
                 var schema = await Write.GetSchemaForStoredProcedureAsync(_connectionFactory, storedProcedure);

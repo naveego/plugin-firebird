@@ -10,8 +10,8 @@ namespace PluginFirebird.API.Replication
 {
     public static partial class Replication
     {
-        private static readonly string GetRecordQuery = @"SELECT * FROM {0}.{1}
-WHERE {2} = '{3}'";
+        private static readonly string GetRecordQuery = @"SELECT * FROM {0}
+WHERE {1} = '{2}'";
 
         public static async Task<Dictionary<string, object>> GetRecordAsync(IConnectionFactory connFactory,
             ReplicationTable table,
@@ -24,9 +24,10 @@ WHERE {2} = '{3}'";
                 await conn.OpenAsync();
 
                 var cmd = connFactory.GetCommand(string.Format(GetRecordQuery,
-                        Utility.Utility.GetSafeName(table.SchemaName, '`'),
-                        Utility.Utility.GetSafeName(table.TableName, '`'),
-                        Utility.Utility.GetSafeName(table.Columns.Find(c => c.PrimaryKey == true).ColumnName, '`'),
+                        // --- Note: Firebird databases only contain one schema ---
+                        //Utility.Utility.GetSafeName(table.SchemaName, '"'),
+                        Utility.Utility.GetSafeName(table.TableName, '"'),
+                        Utility.Utility.GetSafeName(table.Columns.Find(c => c.PrimaryKey == true)?.ColumnName, '"'),
                         primaryKeyValue
                     ),
                     conn);
@@ -45,7 +46,7 @@ WHERE {2} = '{3}'";
                     {
                         try
                         {
-                            recordMap[column.ColumnName] = reader.GetValueById(column.ColumnName, '`');
+                            recordMap[column.ColumnName] = reader.GetValueById(column.ColumnName, '"');
                         }
                         catch (Exception e)
                         {

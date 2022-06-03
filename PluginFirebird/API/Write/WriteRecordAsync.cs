@@ -37,7 +37,7 @@ namespace PluginFirebird.API.Write
                 await WriteSemaphoreSlim.WaitAsync();
 
                 // call stored procedure
-                var querySb = new StringBuilder($"CALL {schema.Query}(");
+                var querySb = new StringBuilder($"EXECUTE PROCEDURE {schema.Query} (");
 
                 foreach (var property in schema.Properties)
                 {

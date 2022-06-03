@@ -19,7 +19,7 @@ namespace PluginFirebird.API.Write
                         {"type", "string"},
                         {"title", "Stored Procedure"},
                         {"description", "Stored Procedure to call"},
-                        {"enum", storedProcedures.Select(s => s.GetId())}
+                        {"enum", storedProcedures.Select(s => s.GetName())}
                     }},
                 }},
                 {"required", new []

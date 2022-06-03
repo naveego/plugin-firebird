@@ -66,6 +66,7 @@ namespace PluginMySQLTest.Plugin
         
         private Schema GetTestReplicationSchema(string id = "test", string name = "test", string query = "")
         {
+            // --- Note: Changed to fit the schema of the PERSONS table ---
             return new Schema
             {
                 Id = id,
@@ -74,6 +75,41 @@ namespace PluginMySQLTest.Plugin
                 Properties =
                 {
                     new Property
+                    {
+                        Id = "LASTNAME",
+                        Name = "LASTNAME",
+                        Type = PropertyType.String,
+                        IsKey = false
+                    },
+                    new Property
+                    {
+                        Id = "FIRSTNAME",
+                        Name = "FIRSTNAME",
+                        Type = PropertyType.String,
+                        IsKey = false
+                    },
+                    new Property
+                    {
+                        Id = "ADDRESS",
+                        Name = "ADDRESS",
+                        Type = PropertyType.String,
+                        IsKey = false
+                    },
+                    new Property
+                    {
+                        Id = "CITY",
+                        Name = "CITY",
+                        Type = PropertyType.String,
+                        IsKey = false
+                    },
+                    new Property
+                    {
+                        Id = "PERSONID",
+                        Name = "PERSONID",
+                        Type = PropertyType.Integer,
+                        IsKey = true
+                    }
+                    /*new Property
                     {
                         Id = "Id",
                         Name = "Id",
@@ -109,7 +145,7 @@ namespace PluginMySQLTest.Plugin
                         Id = "Decimal",
                         Name = "Decimal",
                         Type = PropertyType.Decimal
-                    },
+                    },*/
                 }
             };
         }
@@ -214,22 +250,25 @@ namespace PluginMySQLTest.Plugin
 
             // assert
             Assert.IsType<DiscoverSchemasResponse>(response);
-            Assert.Equal(17, response.Schemas.Count);
+            Assert.Equal(8, response.Schemas.Count);
 
             var schema = response.Schemas[0];
-            Assert.Equal($"`classicmodels`.`customers`", schema.Id);
-            Assert.Equal("classicmodels.customers", schema.Name);
+            // Assert.Equal($"`classicmodels`.`customers`", schema.Id);
+            // Assert.Equal("classicmodels.customers", schema.Name);
+            Assert.Equal($"\"BUSINESSES\"", schema.Id);
+            Assert.Equal("BUSINESSES", schema.Name);
             Assert.Equal($"", schema.Query);
-            Assert.Equal(10, schema.Sample.Count);
-            Assert.Equal(13, schema.Properties.Count);
+            //Assert.Equal(0, schema.Sample.Count);
+            Assert.Empty(schema.Sample);
+            Assert.Equal(2, schema.Properties.Count);
 
-            var property = schema.Properties[7];
-            Assert.Equal("`customerNumber`", property.Id);
-            Assert.Equal("customerNumber", property.Name);
+            var property = schema.Properties[1];
+            Assert.Equal("\"REVENUE\"", property.Id);
+            Assert.Equal("REVENUE", property.Name);
             Assert.Equal("", property.Description);
-            Assert.Equal(PropertyType.Integer, property.Type);
-            Assert.True(property.IsKey);
-            Assert.False(property.IsNullable);
+            Assert.Equal(PropertyType.Decimal, property.Type);
+            Assert.False(property.IsKey);
+            Assert.True(property.IsNullable);
 
             // cleanup
             await channel.ShutdownAsync();
@@ -258,7 +297,7 @@ namespace PluginMySQLTest.Plugin
             {
                 Mode = DiscoverSchemasRequest.Types.Mode.Refresh,
                 SampleSize = 10,
-                ToRefresh = {GetTestSchema("`classicmodels`.`customers`", "classicmodels.customers")}
+                ToRefresh = {GetTestSchema("\"PERSONS\"", "PERSONS")}
             };
 
             // act
@@ -270,19 +309,19 @@ namespace PluginMySQLTest.Plugin
             Assert.Single(response.Schemas);
 
             var schema = response.Schemas[0];
-            Assert.Equal($"`classicmodels`.`customers`", schema.Id);
-            Assert.Equal("classicmodels.customers", schema.Name);
+            Assert.Equal($"\"PERSONS\"", schema.Id);
+            Assert.Equal("PERSONS", schema.Name);
             Assert.Equal($"", schema.Query);
             Assert.Equal(10, schema.Sample.Count);
-            Assert.Equal(13, schema.Properties.Count);
+            Assert.Equal(5, schema.Properties.Count);
 
             var property = schema.Properties[0];
-            Assert.Equal("`customerNumber`", property.Id);
-            Assert.Equal("customerNumber", property.Name);
+            Assert.Equal("\"LASTNAME\"", property.Id);
+            Assert.Equal("LASTNAME", property.Name);
             Assert.Equal("", property.Description);
-            Assert.Equal(PropertyType.Integer, property.Type);
-            Assert.True(property.IsKey);
-            Assert.False(property.IsNullable);
+            Assert.Equal(PropertyType.String, property.Type);
+            Assert.False(property.IsKey);
+            Assert.True(property.IsNullable);
 
             // cleanup
             await channel.ShutdownAsync();
@@ -311,7 +350,7 @@ namespace PluginMySQLTest.Plugin
             {
                 Mode = DiscoverSchemasRequest.Types.Mode.Refresh,
                 SampleSize = 10,
-                ToRefresh = {GetTestSchema("test", "test", $"SELECT * FROM `classicmodels`.`customers`")}
+                ToRefresh = {GetTestSchema("test", "test", $"SELECT * FROM \"PERSONS\"")}
             };
 
             // act
@@ -325,17 +364,17 @@ namespace PluginMySQLTest.Plugin
             var schema = response.Schemas[0];
             Assert.Equal($"test", schema.Id);
             Assert.Equal("test", schema.Name);
-            Assert.Equal($"SELECT * FROM `classicmodels`.`customers`", schema.Query);
+            Assert.Equal($"SELECT * FROM \"PERSONS\"", schema.Query);
             Assert.Equal(10, schema.Sample.Count);
-            Assert.Equal(13, schema.Properties.Count);
+            Assert.Equal(5, schema.Properties.Count);
 
             var property = schema.Properties[0];
-            Assert.Equal("`customerNumber`", property.Id);
-            Assert.Equal("customerNumber", property.Name);
+            Assert.Equal("\"LASTNAME\"", property.Id);
+            Assert.Equal("LASTNAME", property.Name);
             Assert.Equal("", property.Description);
-            Assert.Equal(PropertyType.Integer, property.Type);
-            Assert.True(property.IsKey);
-            Assert.False(property.IsNullable);
+            Assert.Equal(PropertyType.String, property.Type);
+            Assert.False(property.IsKey);
+            Assert.True(property.IsNullable);
 
             // cleanup
             await channel.ShutdownAsync();
@@ -372,13 +411,16 @@ namespace PluginMySQLTest.Plugin
 
             try
             {
-                var response = client.DiscoverSchemas(request);
+                //var response = client.DiscoverSchemas(request);
+                client.DiscoverSchemas(request);
             }
             catch (Exception e)
             {
                 // assert
                 Assert.IsType<RpcException>(e);
-                Assert.Contains("You have an error in your SQL syntax", e.Message);
+                Assert.Contains("Status(StatusCode=\"Unknown\", Detail=\"Dynamic SQL Error", e.Message);
+                Assert.Contains("SQL error code = -104", e.Message);
+                Assert.Contains("Token unknown - line 1, column 1\nbad", e.Message);
             }
 
             // cleanup
@@ -403,8 +445,9 @@ namespace PluginMySQLTest.Plugin
             var channel = new Channel($"localhost:{port}", ChannelCredentials.Insecure);
             var client = new Publisher.PublisherClient(channel);
 
-            var schema = GetTestSchema("`classicmodels`.`customers`", "classicmodels.customers");
-
+            //var schema = GetTestSchema("`classicmodels`.`customers`", "classicmodels.customers");
+            var schema = GetTestSchema("\"PERSONS\"", "PERSONS");
+            
             var connectRequest = GetConnectSettings();
 
             var schemaRequest = new DiscoverSchemasRequest
@@ -437,10 +480,10 @@ namespace PluginMySQLTest.Plugin
             }
 
             // assert
-            Assert.Equal(122, records.Count);
+            Assert.Equal(20, records.Count);
 
             var record = JsonConvert.DeserializeObject<Dictionary<string, object>>(records[0].DataJson);
-            Assert.Equal((long) 103, record["`customerNumber`"]);
+            /*Assert.Equal((long) 103, record["`customerNumber`"]);
             Assert.Equal("Atelier graphique", record["`customerName`"]);
             Assert.Equal("Schmitt", record["`contactLastName`"]);
             Assert.Equal("Carine", record["`contactFirstName`"]);
@@ -452,7 +495,12 @@ namespace PluginMySQLTest.Plugin
             Assert.Equal("44000", record["`postalCode`"]);
             Assert.Equal("France", record["`country`"]);
             Assert.Equal((long) 1370, record["`salesRepEmployeeNumber`"]);
-            Assert.Equal("21000.00", record["`creditLimit`"]);
+            Assert.Equal("21000.00", record["`creditLimit`"]);*/
+            Assert.Equal("Bell", record["\"LASTNAME\""]);
+            Assert.Equal("Kiara", record["\"FIRSTNAME\""]);
+            Assert.Equal("7553 Beech Drive", record["\"ADDRESS\""]);
+            Assert.Equal("Warner, NH", record["\"CITY\""]);
+            Assert.Equal((long) 1, record["\"PERSONID\""]);
 
             // cleanup
             await channel.ShutdownAsync();
@@ -475,7 +523,7 @@ namespace PluginMySQLTest.Plugin
             var channel = new Channel($"localhost:{port}", ChannelCredentials.Insecure);
             var client = new Publisher.PublisherClient(channel);
 
-            var schema = GetTestSchema("test", "test", $"SELECT * FROM `classicmodels`.`orders`");
+            var schema = GetTestSchema("test", "test", $"SELECT * FROM \"PERSONS\"");
 
             var connectRequest = GetConnectSettings();
 
@@ -509,16 +557,21 @@ namespace PluginMySQLTest.Plugin
             }
 
             // assert
-            Assert.Equal(326, records.Count);
+            Assert.Equal(20, records.Count);
 
             var record = JsonConvert.DeserializeObject<Dictionary<string, object>>(records[0].DataJson);
-            Assert.Equal((long) 10100, record["`orderNumber`"]);
+            /*Assert.Equal((long) 10100, record["`orderNumber`"]);
             Assert.Equal(DateTime.Parse("2003-01-06"), record["`orderDate`"]);
             Assert.Equal(DateTime.Parse("2003-01-13"), record["`requiredDate`"]);
             Assert.Equal(DateTime.Parse("2003-01-10"), record["`shippedDate`"]);
             Assert.Equal("Shipped", record["`status`"]);
             Assert.Equal("", record["`comments`"]);
-            Assert.Equal((long) 363, record["`customerNumber`"]);
+            Assert.Equal((long) 363, record["`customerNumber`"]);*/
+            Assert.Equal((long) 1, record["\"PERSONID\""]);
+            Assert.Equal("Warner, NH", record["\"CITY\""]);
+            Assert.Equal("7553 Beech Drive", record["\"ADDRESS\""]);
+            Assert.Equal("Bell", record["\"LASTNAME\""]);
+            Assert.Equal("Kiara", record["\"FIRSTNAME\""]);
 
             // cleanup
             await channel.ShutdownAsync();
@@ -541,7 +594,7 @@ namespace PluginMySQLTest.Plugin
             var channel = new Channel($"localhost:{port}", ChannelCredentials.Insecure);
             var client = new Publisher.PublisherClient(channel);
 
-            var schema = GetTestSchema("`classicmodels`.`customers`", "classicmodels.customers");
+            var schema = GetTestSchema("\"PERSONS\"", "PERSONS");
 
             var connectRequest = GetConnectSettings();
 
@@ -661,9 +714,9 @@ namespace PluginMySQLTest.Plugin
                 {
                     SettingsJson = JsonConvert.SerializeObject(new ConfigureReplicationFormData
                     {
-                        SchemaName = "test",
-                        GoldenTableName = "gr_test",
-                        VersionTableName = "vr_test"
+                        SchemaName = "Persons",
+                        GoldenTableName = "gr_Persons",
+                        VersionTableName = "vr_Persons"
                     })
                 },
                 DataVersions = new DataVersions
@@ -681,15 +734,16 @@ namespace PluginMySQLTest.Plugin
                     new Record
                     {
                         Action = Record.Types.Action.Upsert,
-                        CorrelationId = "test",
+                        CorrelationId = "Persons",
                         RecordId = "record1",
-                        DataJson = $"{{\"Id\":1,\"Name\":\"Test Company\",\"DateTime\":\"{DateTime.Today}\",\"Date\":\"{DateTime.Now.Date}\",\"Time\":\"{DateTime.Now:hh:mm:ss}\",\"Decimal\":\"13.04\"}}",
+                        //DataJson = $"{{\"Id\":1,\"Name\":\"Test Company\",\"DateTime\":\"{DateTime.Today}\",\"Date\":\"{DateTime.Now.Date:mm/dd/yyyy}\",\"Time\":\"{DateTime.Now:hh:mm:ss}\",\"Decimal\":\"13.04\"}}",
+                        DataJson = $"{{\"LASTNAME\":'Reynolds',\"FIRSTNAME\":'Laura',\"ADDRESS\":'921 Cone Street',\"CITY\":'Petosky, MI',\"PERSONID\":4}}",
                         Versions =
                         {
                             new RecordVersion
                             {
                                 RecordId = "version1",
-                                DataJson = $"{{\"Id\":1,\"Name\":\"Test Company\",\"DateTime\":\"{DateTime.Now}\",\"Date\":\"{DateTime.Now.Date}\",\"Time\":\"{DateTime.Now:hh:mm:ss}\",\"Decimal\":\"13.04\"}}",
+                                DataJson = $"{{\"LASTNAME\":'Reynolds',\"FIRSTNAME\":'Laura',\"ADDRESS\":'921 Cone Street',\"CITY\":'Petosky, MI',\"PERSONID\":4}}"
                             }
                         }
                     }
@@ -725,7 +779,7 @@ namespace PluginMySQLTest.Plugin
             // assert
             Assert.Single(recordAcks);
             Assert.Equal("", recordAcks[0].Error);
-            Assert.Equal("test", recordAcks[0].CorrelationId);
+            Assert.Equal("Persons", recordAcks[0].CorrelationId);
 
             // cleanup
             await channel.ShutdownAsync();
@@ -756,7 +810,7 @@ namespace PluginMySQLTest.Plugin
                 {
                     DataJson = JsonConvert.SerializeObject(new ConfigureWriteFormData
                     {
-                        StoredProcedure = "`test`.`UpsertIntoTestTable`"
+                        StoredProcedure = "\"UpsertIntoPersons\""
                     })
                 }
             };
@@ -769,7 +823,7 @@ namespace PluginMySQLTest.Plugin
                         Action = Record.Types.Action.Upsert,
                         CorrelationId = "test",
                         RecordId = "record1",
-                        DataJson = "{\"id\":\"1\",\"name\":\"Test First\"}",
+                        DataJson = "{\"LASTNAME\":\"Kelly\",\"FIRSTNAME\":\"James\",\"ADDRESS\":\"937 Pine Drive\",\"CITY\":\"Paradise, HW\",\"PERSONID\":20}",
                     }
                 }
             };

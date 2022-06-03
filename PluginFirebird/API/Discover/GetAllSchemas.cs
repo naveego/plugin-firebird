@@ -4,7 +4,11 @@ using System.Linq;
 using System.Threading.Tasks;
 using Naveego.Sdk.Plugins;
 using PluginFirebird.API.Factory;
+using FirebirdSql.Data;
 using PluginFirebird.Helper;
+
+// Source: Firebird 4.0 Language Reference
+//      https://firebirdsql.org/file/documentation/html/en/refdocs/fblangref40/firebird-40-language-reference.html
 
 namespace PluginFirebird.API.Discover
 {
@@ -18,23 +22,117 @@ namespace PluginFirebird.API.Discover
         private const string ColumnKey = "COLUMN_KEY";
         private const string IsNullable = "IS_NULLABLE";
         private const string CharacterMaxLength = "CHARACTER_MAXIMUM_LENGTH";
+        
+        // ----- All Tables And Columns Query -----
+        // Source: https://stackoverflow.com/questions/10945384/firebird-sql-statement-to-get-the-table-definition
+        // Source: https://stackoverflow.com/questions/36617891/find-all-column-names-that-are-primary-keys-in-firebird-database
+        // Source: https://firebirdsql.org/file/documentation/html/en/refdocs/fblangref40/firebird-40-language-reference.html#fblangref40-datatypes
+        
+        // --- Notes: ---
+        // Table RDB$FIELDS.RDB$FIELD_NAME links to RDB$RELATION_FIELDS.RDB$FIELD_SOURCE,
+        // NOT: RDB$RELATION_FIELDS.RDB$FIELD_NAME
+        
+        // * - Firebird DBs only have 1 schema
+        // Can have multiple DBs for many smaller schemas
+        // TABLE_SCHEMA is the table's OWNER_NAME field
 
-        private const string GetAllTablesAndColumnsQuery = @"
-SELECT t.TABLE_NAME
-     , t.TABLE_SCHEMA
-     , t.TABLE_TYPE
-     , c.COLUMN_NAME
-     , c.DATA_TYPE
-     , c.COLUMN_KEY
-     , c.IS_NULLABLE
-     , c.CHARACTER_MAXIMUM_LENGTH
+        private const string QueryAllTablesAndColumns = @"
+select distinct r.rdb$relation_name as TABLE_NAME
+    , 'FBDBSchema1' as TABLE_SCHEMA
+    , r.RDB$RELATION_TYPE as TABLE_TYPE
+    , rf.RDB$FIELD_NAME as COLUMN_NAME
+    , CASE
+        -- If field type is an Integer and field sub type is greater than 0...
+        WHEN f.RDB$FIELD_TYPE IN ( 7, 8, 16, 26 ) AND f.RDB$FIELD_SUB_TYPE > 0 THEN
+            -- Column type is either NUMERIC or DECIMAL
+            CASE f.RDB$FIELD_SUB_TYPE
+                -- SUBTYPES of INTEGERs here:
+                -- FirebirdSQL makes NUMERIC and DECIMAL types special subtypes of integers
+                WHEN 1 THEN 'NUMERIC'
+                WHEN 2 THEN 'DECIMAL'
+            END
+        -- If field type is a BLOB and field sub type is > 0...
+        WHEN f.RDB$FIELD_TYPE IN ( 261 ) AND f.RDB$FIELD_SUB_TYPE > 0 THEN
+            CASE f.RDB$FIELD_SUB_TYPE
+                -- SUBTYPES of BLOG here:
+                -- FirebirdSQL makes TEXT a subtype of BLOG
+                WHEN 1 THEN 'TEXT'
+                ELSE 'BLOB'
+            END
+        -- Other types here...
+        ELSE CASE f.RDB$FIELD_TYPE
+            WHEN 7 THEN 'SMALLINT'
+            WHEN 8 THEN 'INTEGER'
+            WHEN 10 THEN 'FLOAT'
+            WHEN 12 THEN 'DATE'
+            WHEN 13 THEN 'TIME'
+            WHEN 14 then 'CHAR'
+            WHEN 16 THEN 'BIGINT'
+            WHEN 23 THEN 'BOOLEAN'
+            WHEN 24 THEN 'DECFLOAT(16)'
+            WHEN 25 THEN 'DECFLOAT(34)'
+            WHEN 26 THEN 'INT128'
+            WHEN 27 THEN 'DOUBLE PRECISION'
+            WHEN 28 THEN 'TIME W/TIME ZONE'
+            WHEN 29 THEN 'TIMESTAMP W/TIME ZONE'
+            WHEN 35 THEN 'TIMESTAMP'
+            WHEN 37 THEN 'VARCHAR'
+            WHEN 261 THEN 'BLOB'
+            ELSE 'OTHER'
+          END
+      END AS DATA_TYPE
+    , CASE rc.RDB$CONSTRAINT_TYPE
+        WHEN 'PRIMARY KEY' THEN 'YES'
+        ELSE 'NO'
+      END as COLUMN_KEY
+    , CASE rf.RDB$NULL_FLAG
+        WHEN 1 THEN 'NO'
+        ELSE 'YES'
+      END AS IS_NULLABLE
+    , rc.RDB$CONSTRAINT_NAME as CONSTRAINT_NAME
+    , rc.RDB$CONSTRAINT_TYPE as CONSTRAINT_TYPE
+    , sg.RDB$INDEX_NAME as INDEX_NAME
+    , rf.RDB$FIELD_SOURCE as FIELD_SOURCE
+    , ix.RDB$RELATION_NAME as INDEX_RELATION
+    , f.RDB$CHARACTER_LENGTH AS CHARACTER_MAXIMUM_LENGTH
 
-FROM INFORMATION_SCHEMA.TABLES AS t
-      INNER JOIN INFORMATION_SCHEMA.COLUMNS AS c ON c.TABLE_SCHEMA = t.TABLE_SCHEMA AND c.TABLE_NAME = t.TABLE_NAME
+from
+    RDB$RELATIONS AS r
+    left join RDB$RELATION_FIELDS AS rf ON r.RDB$RELATION_NAME = rf.RDB$RELATION_NAME
+    left join RDB$FIELDS AS f ON rf.RDB$FIELD_SOURCE = f.RDB$FIELD_NAME
+    left join rdb$index_segments AS sg on sg.RDB$FIELD_NAME = rf.RDB$FIELD_NAME
+    left join rdb$relation_constraints AS rc on rc.RDB$RELATION_NAME = r.RDB$RELATION_NAME
+        AND rc.RDB$INDEX_NAME = sg.RDB$INDEX_NAME
+    left join rdb$indices AS ix on (
+        ix.RDB$RELATION_NAME = r.RDB$RELATION_NAME
+        AND rc.RDB$RELATION_NAME = r.RDB$RELATION_NAME
+    )
 
-WHERE t.TABLE_SCHEMA NOT IN ('mysql', 'information_schema', 'performance_schema', 'sys')
+where
+    SUBSTRING (r.RDB$RELATION_NAME FROM 4 FOR 1) <> '$' -- Ignores 'magical tables' (RDB, MON, and SEC)
+        AND (sg.RDB$INDEX_NAME IS NULL OR SUBSTRING (sg.RDB$INDEX_NAME FROM 4 FOR 1) <> '$')
+        AND (rc.RDB$CONSTRAINT_TYPE IS NULL OR rc.RDB$CONSTRAINT_TYPE = 'PRIMARY KEY')
+        -- Removes duplicate segments that AREN'T part of constraints of the current table
+        AND NOT (rc.RDB$CONSTRAINT_NAME IS NULL AND sg.RDB$INDEX_NAME IS NOT NULL)
 
-ORDER BY t.TABLE_NAME";
+
+order by TABLE_NAME, rf.RDB$FIELD_ID ASC";
+
+//         // Source: https://stackoverflow.com/questions/36617891/find-all-column-names-that-are-primary-keys-in-firebird-database
+//         private const string QueryAllTablePKs = @"
+// select
+//     rc.rdb$relation_name as table_name,
+//     sg.rdb$field_name as field_name,
+//     rc.RDB$CONSTRAINT_TYPE as constraint_type
+// from
+//     rdb$indices ix
+//     left join rdb$index_segments sg on ix.rdb$index_name = sg.rdb$index_name
+//     left join rdb$relation_constraints rc on rc.rdb$index_name = ix.rdb$index_name
+// where
+//     SUBSTRING (rc.RDB$RELATION_NAME FROM 4 FOR 1) <> '$' AND
+//     rc.RDB$CONSTRAINT_TYPE = 'PRIMARY KEY'
+// order by table_name, field_name ASC;
+// ";
 
         public static async IAsyncEnumerable<Schema> GetAllSchemas(IConnectionFactory connFactory, int sampleSize = 5)
         {
@@ -44,15 +142,23 @@ ORDER BY t.TABLE_NAME";
             {
                 await conn.OpenAsync();
 
-                var cmd = connFactory.GetCommand(GetAllTablesAndColumnsQuery, conn);
-                var reader = await cmd.ExecuteReaderAsync();
+                var cmd1 = connFactory.GetCommand(QueryAllTablesAndColumns, conn);
+                var reader = await cmd1.ExecuteReaderAsync();
 
+                // // --- Notes: ---
+                // // Attempted to spin up 2nd query to read the PKs of the schema
+                // // New Approach: Larger FirebirdSQL statement for an all-in-one query
+                // var cmd2 = connFactory.GetCommand(QueryAllTablePKs, conn);
+                // var reader2 = await cmd2.ExecuteReaderAsync();
+                
                 Schema schema = null;
                 var currentSchemaId = "";
                 while (await reader.ReadAsync())
                 {
-                    var schemaId =
-                        $"{Utility.Utility.GetSafeName(reader.GetValueById(TableSchema).ToString(), '`')}.{Utility.Utility.GetSafeName(reader.GetValueById(TableName).ToString(), '`')}";
+                    // var schemaId =
+                    //     $"{Utility.Utility.GetSafeName(reader.GetValueById(TableSchema).ToString(), '"')}.{Utility.Utility.GetSafeName(reader.GetValueById(TableName).ToString(), '"')}";
+                    var schemaId = $"{Utility.Utility.GetSafeName(reader.GetValueById(TableName).ToString()?.Trim(), '"')}";
+                    
                     if (schemaId != currentSchemaId)
                     {
                         // return previous schema
@@ -68,8 +174,8 @@ ORDER BY t.TABLE_NAME";
                         schema = new Schema
                         {
                             Id = currentSchemaId,
-                            Name = $"{parts.Schema}.{parts.Table}",
-                            Properties = { },
+                            //Name = $"{parts.Schema.Trim()}.{parts.Table.Trim()}",Properties = { },
+                            Name = $"{parts.Table.Trim()}",
                             DataFlowDirection = Schema.Types.DataFlowDirection.Read
                         };
                     }
@@ -77,12 +183,12 @@ ORDER BY t.TABLE_NAME";
                     // add column to schema
                     var property = new Property
                     {
-                        Id = $"`{reader.GetValueById(ColumnName)}`",
-                        Name = reader.GetValueById(ColumnName).ToString(),
-                        IsKey = reader.GetValueById(ColumnKey).ToString() == "PRI",
+                        Id = $"\"{reader.GetValueById(ColumnName).ToString()?.Trim()}\"",
+                        Name = reader.GetValueById(ColumnName).ToString()?.Trim(),
+                        IsKey = reader.GetValueById(ColumnKey).ToString() == "YES",
                         IsNullable = reader.GetValueById(IsNullable).ToString() == "YES",
-                        Type = GetType(reader.GetValueById(DataType).ToString()),
-                        TypeAtSource = GetTypeAtSource(reader.GetValueById(DataType).ToString(),
+                        Type = GetType(reader.GetValueById(DataType).ToString()?.Trim()),
+                        TypeAtSource = GetTypeAtSource(reader.GetValueById(DataType).ToString()?.Trim(),
                             reader.GetValueById(CharacterMaxLength))
                     };
                     schema?.Properties.Add(property);
@@ -115,37 +221,50 @@ ORDER BY t.TABLE_NAME";
         {
             switch (dataType)
             {
-                case "datetime":
-                case "timestamp":
+                case "TIMESTAMP":
+                case "TIMESTAMP W/TIME ZONE":
                     return PropertyType.Datetime;
-                case "date":
+                case "DATE":
                     return PropertyType.Date;
-                case "time":
+                case "TIME":
+                case "TIME W/TIME ZONE":
                     return PropertyType.Time;
-                case "tinyint":
+                /*case "tinyint":
                 case "smallint":
                 case "mediumint":
                 case "int":
-                case "bigint":
+                case "bigint":*/
+                case "SMALLINT":
+                case "INTEGER":
+                case "BIGINT":
+                case "INT128":
                     return PropertyType.Integer;
-                case "decimal":
+                // DECFLOAT type is floating-point type (non-approximate)
+                // NUMERIC type is like DECIMAL, but is stored "as declared"
+                //      e.x. "3.14195" stored as NUMERIC(4, 2) becomes "3.14" (or 03.14)
+                case "DECFLOAT(16)":
+                case "DECFLOAT(34)":
+                case "DECIMAL":
+                case "NUMERIC":
                     return PropertyType.Decimal;
-                case "float":
-                case "double":
+                case "FLOAT":
+                case "DOUBLE PRECISION":
                     return PropertyType.Float;
-                case "boolean":
+                case "BOOLEAN":
                     return PropertyType.Bool;
-                case "blob":
-                case "mediumblob":
-                case "longblob":
+                //case "blob":
+                //case "mediumblob":
+                //case "longblob":
+                case "BLOB":
                     return PropertyType.Blob;
-                case "char":
-                case "varchar":
-                case "tinytext":
+                case "CHAR":
+                case "VARCHAR":
+                //case "tinytext":
                     return PropertyType.String;
-                case "text":
+                /*case "text":
                 case "mediumtext":
-                case "longtext":
+                case "longtext":*/
+                case "TEXT":
                     return PropertyType.Text;
                 default:
                     return PropertyType.String;

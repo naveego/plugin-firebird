@@ -12,13 +12,14 @@ namespace PluginFirebird.API.Replication
             goldenTable.Columns.Add(new ReplicationColumn
             {
                 ColumnName = Constants.ReplicationRecordId,
-                DataType = "varchar(255)",
+                DataType = "VARCHAR(255)",
                 PrimaryKey = true
             });
             goldenTable.Columns.Add(new ReplicationColumn
             {
                 ColumnName = Constants.ReplicationVersionIds,
-                DataType = "longtext",
+                // In FirebirdDB, Long text is the Blob > Text subtype
+                DataType = "BLOB SUB_TYPE 1",
                 PrimaryKey = false,
                 Serialize = true
             });

@@ -48,7 +48,7 @@ namespace PluginFirebird.API.Read
                         {
                             try
                             {
-                                var rawValue = reader.GetValueById(property.Id, '`');
+                                var rawValue = reader.GetValueById(property.Id, '"');
 
                                 if (rawValue is DBNull)
                                 {

@@ -44,7 +44,7 @@ namespace PluginFirebird.Helper
         /// <returns></returns>
         public string GetConnectionString()
         {
-            return $"Server={Hostname}; Port={Port}; Database={Database}; User={Username}; Password={Password};";
+            return $"User={Username};Password={Password};Database={Database};Host={Hostname};Port={Port};";
         }
         
         /// <summary>
@@ -53,7 +53,7 @@ namespace PluginFirebird.Helper
         /// <returns></returns>
         public string GetConnectionString(string database)
         {
-            return $"Server={Hostname}; Port={Port}; Database={database}; User={Username}; Password={Password};";
+            return $"User={Username};Password={Password};Database={database};Host={Hostname};Port={Port};";
         }
     }
 }

@@ -13,7 +13,8 @@ namespace PluginFirebird.API.Replication
 {
     public static partial class Replication
     {
-        private static readonly string GetMetaDataQuery = @"SELECT * FROM {0}.{1} WHERE {2} = '{3}'";
+        private static readonly string QueryCountMetaData = @"SELECT COUNT(*) FROM {0} WHERE {1} = '{2}'";
+        private static readonly string QueryGetMetaData = @"SELECT * FROM {0} WHERE {1} = '{2}'";
 
         public static async Task<ReplicationMetaData> GetPreviousReplicationMetaDataAsync(
             IConnectionFactory connFactory,
@@ -33,18 +34,31 @@ namespace PluginFirebird.API.Replication
 
                 await conn.OpenAsync();
 
-                var cmd = connFactory.GetCommand(
-                    string.Format(GetMetaDataQuery,
-                        Utility.Utility.GetSafeName(table.SchemaName, '`'),
-                        Utility.Utility.GetSafeName(table.TableName, '`'),
+                // use count query to determine # of rows
+                var countCmd = connFactory.GetCommand(
+                    string.Format(QueryCountMetaData,
+                        //Utility.Utility.GetSafeName(table.SchemaName, '"'),
+                        Utility.Utility.GetSafeName(table.TableName, '"'),
                         Utility.Utility.GetSafeName(Constants.ReplicationMetaDataJobId),
                         jobId),
                     conn);
-                var reader = await cmd.ExecuteReaderAsync();
+                var countReader = await countCmd.ExecuteReaderAsync();
+                await countReader.ReadAsync();
 
-                if (reader.HasRows())
+                var metaDataCount = (long)countReader.GetValueById("\"COUNT\"");
+                if (metaDataCount > 0) // metadata exists
                 {
-                    // metadata exists
+                    var cmd = connFactory.GetCommand(
+                        string.Format(QueryGetMetaData,
+                            //Utility.Utility.GetSafeName(table.SchemaName, '"'),
+                            Utility.Utility.GetSafeName(table.TableName, '"'),
+                            Utility.Utility.GetSafeName(Constants.ReplicationMetaDataJobId),
+                            jobId),
+                        conn);
+                    var reader = await cmd.ExecuteReaderAsync();
+
+                    // if (reader.HasRows())
+                    // {
                     await reader.ReadAsync();
 
                     var request = JsonConvert.DeserializeObject<PrepareWriteRequest>(
@@ -63,8 +77,9 @@ namespace PluginFirebird.API.Replication
                         ReplicatedShapeId = shapeId,
                         Timestamp = timestamp
                     };
+                    //}
                 }
-                
+
                 return replicationMetaData;
             }
             catch (Exception e)

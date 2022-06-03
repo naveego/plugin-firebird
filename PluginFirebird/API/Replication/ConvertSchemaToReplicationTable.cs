@@ -36,27 +36,28 @@ namespace PluginFirebird.API.Replication
             switch (dataType)
             {
                 case PropertyType.Datetime:
-                    return "datetime";
+                    return "TIMESTAMP";
                 case PropertyType.Date:
-                    return "date";
+                    return "DATE";
                 case PropertyType.Time:
-                    return "time";
+                    return "TIME";
                 case PropertyType.Integer:
-                    return "int";
+                    return "INTEGER";
                 case PropertyType.Decimal:
-                    return "decimal(38,18)";
+                    return "DECIMAL(38,18)";
                 case PropertyType.Float:
-                    return "double";
+                    return "DOUBLE PRECISION";
                 case PropertyType.Bool:
-                    return "boolean";
+                    return "BOOLEAN";
                 case PropertyType.Blob:
-                    return "longblob";
+                    return "BLOB";
                 case PropertyType.String:
-                    return "varchar(255)";
+                    return "VARCHAR(255)";
                 case PropertyType.Text:
-                    return "longtext";
+                    // In Firebird, Long text is a Blob > Text subtype
+                    return "BLOB SUB_TYPE 1";
                 default:
-                    return "longtext";
+                    return "BLOB SUB_TYPE 1";
             }
         }
     }

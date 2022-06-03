@@ -34,7 +34,7 @@ namespace PluginFirebird.API.Replication
                     // insert record
                     var querySb =
                         new StringBuilder(
-                            $"INSERT INTO {Utility.Utility.GetSafeName(table.SchemaName)}.{Utility.Utility.GetSafeName(table.TableName)}(");
+                            $"INSERT INTO {Utility.Utility.GetSafeName(table.TableName)} (");
                     foreach (var column in table.Columns)
                     {
                         querySb.Append($"{Utility.Utility.GetSafeName(column.ColumnName)},");
@@ -118,7 +118,7 @@ namespace PluginFirebird.API.Replication
                     // update record
                     var querySb =
                         new StringBuilder(
-                            $"UPDATE {Utility.Utility.GetSafeName(table.SchemaName)}.{Utility.Utility.GetSafeName(table.TableName)} SET ");
+                            $"UPDATE {Utility.Utility.GetSafeName(table.TableName)} SET ");
                     foreach (var column in table.Columns)
                     {
                         if (!column.PrimaryKey)

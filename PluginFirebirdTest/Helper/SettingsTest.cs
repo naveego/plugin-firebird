@@ -120,8 +120,8 @@ namespace PluginMySQLTest.Helper
             var connDbString = settings.GetConnectionString("otherdb");
 
             // assert
-            Assert.Equal("Server=123.456.789.0; Port=3306; Database=testdb; User=username; Password=password;", connString);
-            Assert.Equal("Server=123.456.789.0; Port=3306; Database=otherdb; User=username; Password=password;", connDbString);
+            Assert.Equal("User=username;Password=password;Database=testdb;Host=123.456.789.0;Port=3306;", connString);
+            Assert.Equal("User=username;Password=password;Database=otherdb;Host=123.456.789.0;Port=3306;", connDbString);
         }
     }
 }
