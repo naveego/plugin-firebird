@@ -250,7 +250,7 @@ namespace PluginMySQLTest.Plugin
 
             // assert
             Assert.IsType<DiscoverSchemasResponse>(response);
-            Assert.Equal(8, response.Schemas.Count);
+            Assert.Equal(18, response.Schemas.Count);
 
             var schema = response.Schemas[0];
             // Assert.Equal($"`classicmodels`.`customers`", schema.Id);
@@ -480,7 +480,7 @@ namespace PluginMySQLTest.Plugin
             }
 
             // assert
-            Assert.Equal(20, records.Count);
+            Assert.Equal(22, records.Count);
 
             var record = JsonConvert.DeserializeObject<Dictionary<string, object>>(records[0].DataJson);
             /*Assert.Equal((long) 103, record["`customerNumber`"]);
@@ -557,7 +557,7 @@ namespace PluginMySQLTest.Plugin
             }
 
             // assert
-            Assert.Equal(20, records.Count);
+            Assert.Equal(22, records.Count);
 
             var record = JsonConvert.DeserializeObject<Dictionary<string, object>>(records[0].DataJson);
             /*Assert.Equal((long) 10100, record["`orderNumber`"]);
@@ -737,7 +737,7 @@ namespace PluginMySQLTest.Plugin
                         CorrelationId = "Persons",
                         RecordId = "record1",
                         //DataJson = $"{{\"Id\":1,\"Name\":\"Test Company\",\"DateTime\":\"{DateTime.Today}\",\"Date\":\"{DateTime.Now.Date:mm/dd/yyyy}\",\"Time\":\"{DateTime.Now:hh:mm:ss}\",\"Decimal\":\"13.04\"}}",
-                        DataJson = $"{{\"LASTNAME\":'Reynolds',\"FIRSTNAME\":'Laura',\"ADDRESS\":'921 Cone Street',\"CITY\":'Petosky, MI',\"PERSONID\":4}}",
+                        DataJson = $"{{\"Lastname\":'Reynolds',\"Firstname\":'Laura',\"ADDRESS\":'921 Cone Street',\"CITY\":'Petosky, MI',\"PERSONID\":4}}",
                         Versions =
                         {
                             new RecordVersion

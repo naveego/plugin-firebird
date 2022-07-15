@@ -163,18 +163,32 @@ namespace PluginFirebird.API.Replication
         /// <returns>Data object with friendly name keys</returns>
         private static Dictionary<string, object> GetNamedRecordData(Schema schema, string dataJson)
         {
+            // data to return
             var namedData = new Dictionary<string, object>();
+            // data converted from JSON
             var recordData = JsonConvert.DeserializeObject<Dictionary<string, object>>(dataJson);
+            // data transformed for formatting
+            var finalRecordData = new Dictionary<string, object>(); 
+
+            foreach (var (id, value) in recordData)
+            {
+                // if id doesn't contain quotes, always convert to all caps
+                if (!id.IsOracleEscaped())
+                {
+                    // copy into final Record data as all caps
+                    finalRecordData[id.Trim().ToAllCaps()] = recordData[id];
+                }
+            }
 
             foreach (var property in schema.Properties)
             {
                 var key = property.Id;
-                if (!recordData.ContainsKey(key))
+                if (!finalRecordData.ContainsKey(key.Trim().ToAllCaps()))
                 {
                     continue;
                 }
 
-                namedData.Add(property.Name, recordData[key]);
+                namedData.Add(property.Name, finalRecordData[key]);
             }
 
             return namedData;

@@ -126,55 +126,55 @@ namespace PluginFirebird.API.Replication
                             if (recordMap.ContainsKey(column.ColumnName))
                             {
                                 var rawValue = recordMap[column.ColumnName];
-                            if (column.Serialize)
-                            {
-                                rawValue = JsonConvert.SerializeObject(rawValue);
-                            }
-
-                            if (rawValue != null)
-                            {
-                                switch (column.DataType)
+                                if (column.Serialize)
                                 {
-                                    case "date":
-                                        if (DateTime.TryParse(rawValue.ToString(), out var date))
-                                        {
-                                            rawValue = date.ToString("yyyy-MM-dd");
-                                        }
-                                        else
-                                        {
-                                            rawValue = null;
-                                        }
-
-                                        break;
-                                    case "datetime":
-                                        if (DateTime.TryParse(rawValue.ToString(), out var datetime))
-                                        {
-                                            rawValue = datetime.ToString("yyyy-MM-dd HH:mm:ss");
-                                        }
-                                        else
-                                        {
-                                            rawValue = null;
-                                        }
-
-                                        break;
-                                    case "time":
-                                        if (TimeSpan.TryParse(rawValue.ToString(), out var time))
-                                        {
-                                            rawValue = time.ToString("c");
-                                        }
-                                        else
-                                        {
-                                            rawValue = null;
-                                        }
-
-                                        break;
+                                    rawValue = JsonConvert.SerializeObject(rawValue);
                                 }
 
-                            }
+                                if (rawValue != null)
+                                {
+                                    switch (column.DataType)
+                                    {
+                                        case "date":
+                                            if (DateTime.TryParse(rawValue.ToString(), out var date))
+                                            {
+                                                rawValue = date.ToString("yyyy-MM-dd");
+                                            }
+                                            else
+                                            {
+                                                rawValue = null;
+                                            }
 
-                            querySb.Append(rawValue != null
-                                ? $"{Utility.Utility.GetSafeName(column.ColumnName)}='{Utility.Utility.GetSafeString(rawValue.ToString(), "'", "''")}',"
-                                : $"{Utility.Utility.GetSafeName(column.ColumnName)}=NULL,");
+                                            break;
+                                        case "datetime":
+                                            if (DateTime.TryParse(rawValue.ToString(), out var datetime))
+                                            {
+                                                rawValue = datetime.ToString("yyyy-MM-dd HH:mm:ss");
+                                            }
+                                            else
+                                            {
+                                                rawValue = null;
+                                            }
+
+                                            break;
+                                        case "time":
+                                            if (TimeSpan.TryParse(rawValue.ToString(), out var time))
+                                            {
+                                                rawValue = time.ToString("c");
+                                            }
+                                            else
+                                            {
+                                                rawValue = null;
+                                            }
+
+                                            break;
+                                    }
+
+                                }
+
+                                querySb.Append(rawValue != null
+                                    ? $"{Utility.Utility.GetSafeName(column.ColumnName)}='{Utility.Utility.GetSafeString(rawValue.ToString(), "'", "''")}',"
+                                    : $"{Utility.Utility.GetSafeName(column.ColumnName)}=NULL,");
                             }
                             else
                             {

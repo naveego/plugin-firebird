@@ -183,7 +183,7 @@ order by TABLE_NAME, rf.RDB$FIELD_ID ASC";
                     // add column to schema
                     var property = new Property
                     {
-                        Id = $"\"{reader.GetValueById(ColumnName).ToString()?.Trim()}\"",
+                        Id = Utility.Utility.GetSafeName(reader.GetValueById(ColumnName).ToString()?.Trim()),
                         Name = reader.GetValueById(ColumnName).ToString()?.Trim(),
                         IsKey = reader.GetValueById(ColumnKey).ToString() == "YES",
                         IsNullable = reader.GetValueById(IsNullable).ToString() == "YES",
