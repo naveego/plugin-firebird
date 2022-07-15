@@ -4,7 +4,7 @@
   "description": "Publisher which connects to Firebird",
   "apiVersion": "2",
   "versionDescription": "Version 2",
-  "version": "1.0.0-beta",
+  "version": "1.0.0-beta2",
   "iconFile": "icon.png",
   "executable": "PluginFirebird",
   "kind": "publisher",
