@@ -250,7 +250,7 @@ namespace PluginMySQLTest.Plugin
 
             // assert
             Assert.IsType<DiscoverSchemasResponse>(response);
-            Assert.Equal(18, response.Schemas.Count);
+            Assert.Equal(30, response.Schemas.Count);
 
             var schema = response.Schemas[0];
             // Assert.Equal($"`classicmodels`.`customers`", schema.Id);

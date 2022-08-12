@@ -8,11 +8,6 @@ namespace PluginFirebird.API.Replication
         public static List<string> ValidateReplicationFormData(this ConfigureReplicationFormData data)
         {
             var errors = new List<string>();
-
-            if (string.IsNullOrWhiteSpace(data.SchemaName))
-            {
-                errors.Add("Schema name is empty.");
-            }
             
             if (string.IsNullOrWhiteSpace(data.GoldenTableName))
             {

@@ -34,12 +34,12 @@ namespace PluginFirebird.API.Replication
             var metaDataTable = new ReplicationTable
             {
                 SchemaName = safeSchemaName,
-                TableName = Utility.Constants.ReplicationMetaDataTableName,
-                Columns = Utility.Constants.ReplicationMetaDataColumns
+                TableName = Constants.ReplicationMetaDataTableName,
+                Columns = Constants.ReplicationMetaDataColumns
             };
 
-            var goldenTable = GetGoldenReplicationTable(request.Schema, safeSchemaName, safeGoldenTableName);
-            var versionTable = GetVersionReplicationTable(request.Schema, safeSchemaName, safeVersionTableName);
+            var goldenTable = GetGoldenReplicationTable(request.Schema, safeGoldenTableName);
+            var versionTable = GetVersionReplicationTable(request.Schema, safeVersionTableName);
 
             Logger.Info(
                 $"SchemaName: {safeSchemaName} Golden Table: {safeGoldenTableName} Version Table: {safeVersionTableName} job: {request.DataVersions.JobId}");
@@ -76,9 +76,9 @@ namespace PluginFirebird.API.Replication
                     JsonConvert.DeserializeObject<ConfigureReplicationFormData>(previousMetaData.Request.Replication
                         .SettingsJson);
                 
-                var previousGoldenTable = ConvertSchemaToReplicationTable(previousMetaData.Request.Schema, previousReplicationSettings.SchemaName, previousReplicationSettings.GoldenTableName);
+                var previousGoldenTable = ConvertSchemaToReplicationTable(previousMetaData.Request.Schema, previousReplicationSettings.GoldenTableName);
 
-                var previousVersionTable = ConvertSchemaToReplicationTable(previousMetaData.Request.Schema, previousReplicationSettings.SchemaName, previousReplicationSettings.VersionTableName);
+                var previousVersionTable = ConvertSchemaToReplicationTable(previousMetaData.Request.Schema, previousReplicationSettings.VersionTableName);
 
                 // check if schema changed
                 if (previousReplicationSettings.SchemaName != replicationSettings.SchemaName)

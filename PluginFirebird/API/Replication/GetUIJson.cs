@@ -11,7 +11,6 @@ namespace PluginFirebird.API.Replication
             {
                 {"ui:order", new []
                 {
-                    "SchemaName",
                     "GoldenTableName",
                     "VersionTableName"
                 }}

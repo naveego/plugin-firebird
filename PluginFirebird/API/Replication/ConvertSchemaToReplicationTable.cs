@@ -6,12 +6,12 @@ namespace PluginFirebird.API.Replication
 {
     public static partial class Replication 
     {
-        public static ReplicationTable ConvertSchemaToReplicationTable(Schema schema, string schemaName,
+        public static ReplicationTable ConvertSchemaToReplicationTable(Schema schema,
             string tableName)
         {
             var table = new ReplicationTable
             {
-                SchemaName = schemaName,
+                SchemaName = "DefaultSchema",
                 TableName = tableName,
                 Columns = new List<ReplicationColumn>()
             };

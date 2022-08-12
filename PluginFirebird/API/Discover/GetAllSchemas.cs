@@ -118,22 +118,6 @@ where
 
 order by TABLE_NAME, rf.RDB$FIELD_ID ASC";
 
-//         // Source: https://stackoverflow.com/questions/36617891/find-all-column-names-that-are-primary-keys-in-firebird-database
-//         private const string QueryAllTablePKs = @"
-// select
-//     rc.rdb$relation_name as table_name,
-//     sg.rdb$field_name as field_name,
-//     rc.RDB$CONSTRAINT_TYPE as constraint_type
-// from
-//     rdb$indices ix
-//     left join rdb$index_segments sg on ix.rdb$index_name = sg.rdb$index_name
-//     left join rdb$relation_constraints rc on rc.rdb$index_name = ix.rdb$index_name
-// where
-//     SUBSTRING (rc.RDB$RELATION_NAME FROM 4 FOR 1) <> '$' AND
-//     rc.RDB$CONSTRAINT_TYPE = 'PRIMARY KEY'
-// order by table_name, field_name ASC;
-// ";
-
         public static async IAsyncEnumerable<Schema> GetAllSchemas(IConnectionFactory connFactory, int sampleSize = 5)
         {
             var conn = connFactory.GetConnection();
@@ -145,18 +129,10 @@ order by TABLE_NAME, rf.RDB$FIELD_ID ASC";
                 var cmd1 = connFactory.GetCommand(QueryAllTablesAndColumns, conn);
                 var reader = await cmd1.ExecuteReaderAsync();
 
-                // // --- Notes: ---
-                // // Attempted to spin up 2nd query to read the PKs of the schema
-                // // New Approach: Larger FirebirdSQL statement for an all-in-one query
-                // var cmd2 = connFactory.GetCommand(QueryAllTablePKs, conn);
-                // var reader2 = await cmd2.ExecuteReaderAsync();
-                
                 Schema schema = null;
                 var currentSchemaId = "";
                 while (await reader.ReadAsync())
                 {
-                    // var schemaId =
-                    //     $"{Utility.Utility.GetSafeName(reader.GetValueById(TableSchema).ToString(), '"')}.{Utility.Utility.GetSafeName(reader.GetValueById(TableName).ToString(), '"')}";
                     var schemaId = $"{Utility.Utility.GetSafeName(reader.GetValueById(TableName).ToString()?.Trim(), '"')}";
                     
                     if (schemaId != currentSchemaId)
@@ -164,7 +140,6 @@ order by TABLE_NAME, rf.RDB$FIELD_ID ASC";
                         // return previous schema
                         if (schema != null)
                         {
-                            // get sample and count
                             yield return await AddSampleAndCount(connFactory, schema, sampleSize);
                         }
 
@@ -174,7 +149,6 @@ order by TABLE_NAME, rf.RDB$FIELD_ID ASC";
                         schema = new Schema
                         {
                             Id = currentSchemaId,
-                            //Name = $"{parts.Schema.Trim()}.{parts.Table.Trim()}",Properties = { },
                             Name = $"{parts.Table.Trim()}",
                             DataFlowDirection = Schema.Types.DataFlowDirection.Read
                         };
@@ -229,11 +203,6 @@ order by TABLE_NAME, rf.RDB$FIELD_ID ASC";
                 case "TIME":
                 case "TIME W/TIME ZONE":
                     return PropertyType.Time;
-                /*case "tinyint":
-                case "smallint":
-                case "mediumint":
-                case "int":
-                case "bigint":*/
                 case "SMALLINT":
                 case "INTEGER":
                 case "BIGINT":
@@ -252,18 +221,11 @@ order by TABLE_NAME, rf.RDB$FIELD_ID ASC";
                     return PropertyType.Float;
                 case "BOOLEAN":
                     return PropertyType.Bool;
-                //case "blob":
-                //case "mediumblob":
-                //case "longblob":
                 case "BLOB":
                     return PropertyType.Blob;
                 case "CHAR":
                 case "VARCHAR":
-                //case "tinytext":
                     return PropertyType.String;
-                /*case "text":
-                case "mediumtext":
-                case "longtext":*/
                 case "TEXT":
                     return PropertyType.Text;
                 default:

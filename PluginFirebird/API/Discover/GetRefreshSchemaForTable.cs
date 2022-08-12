@@ -8,25 +8,6 @@ namespace PluginFirebird.API.Discover
 {
     public static partial class Discover
     {
-//         private const string QueryTableAndColumns = @"
-// SELECT t.TABLE_NAME
-//      , t.TABLE_SCHEMA
-//      , t.TABLE_TYPE
-//      , c.COLUMN_NAME
-//      , c.DATA_TYPE
-//      , c.COLUMN_KEY
-//      , c.IS_NULLABLE
-//      , c.CHARACTER_MAXIMUM_LENGTH
-//
-// FROM INFORMATION_SCHEMA.TABLES AS t
-//       INNER JOIN INFORMATION_SCHEMA.COLUMNS AS c ON c.TABLE_SCHEMA = t.TABLE_SCHEMA AND c.TABLE_NAME = t.TABLE_NAME
-//
-// WHERE t.TABLE_SCHEMA NOT IN ('mysql', 'information_schema', 'performance_schema', 'sys')
-// AND t.TABLE_SCHEMA = '{0}'
-// AND t.TABLE_NAME = '{1}' 
-//
-// ORDER BY t.TABLE_NAME";
-
         private const string QueryTableAndColumns = @"
 select distinct r.rdb$relation_name as TABLE_NAME
     , 'FBDBSchema1' as TABLE_SCHEMA
@@ -107,7 +88,6 @@ where
         AND NOT (rc.RDB$CONSTRAINT_NAME IS NULL AND sg.RDB$INDEX_NAME IS NOT NULL)
         AND r.RDB$RELATION_NAME = '{0}'
 
-
 order by TABLE_NAME, rf.RDB$FIELD_ID ASC";
 
         public static async Task<Schema> GetRefreshSchemaForTable(IConnectionFactory connFactory, Schema schema,
@@ -155,8 +135,6 @@ order by TABLE_NAME, rf.RDB$FIELD_ID ASC";
                 schema.Properties.Clear();
                 schema.Properties.AddRange(refreshProperties);
 
-            
-
                 // get sample and count
                 return await AddSampleAndCount(connFactory, schema, sampleSize);
             }
@@ -171,7 +149,7 @@ order by TABLE_NAME, rf.RDB$FIELD_ID ASC";
             var response = new DecomposeResponse
             {
                 Database = "",
-                Schema = "",
+                Schema = "DefaultSchema",
                 Table = ""
             };
             var parts = schemaId.Split('.');
@@ -184,13 +162,8 @@ order by TABLE_NAME, rf.RDB$FIELD_ID ASC";
                     response.Table = parts[0];
                     return response;
                 case 2:
-                    response.Schema = parts[0];
-                    response.Table = parts[1];
-                    return response;
-                case 3:
                     response.Database = parts[0];
-                    response.Schema = parts[1];
-                    response.Table = parts[2];
+                    response.Table = parts[1];
                     return response;
                 default:
                     return response;
@@ -200,7 +173,7 @@ order by TABLE_NAME, rf.RDB$FIELD_ID ASC";
         private static DecomposeResponse TrimEscape(this DecomposeResponse response, char escape = '"')
         {
             response.Database = response.Database.Trim(escape);
-            response.Schema = response.Schema.Trim(escape);
+            response.Schema = "DefaultSchema";
             response.Table = response.Table.Trim(escape);
 
             return response;

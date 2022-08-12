@@ -6,9 +6,9 @@ namespace PluginFirebird.API.Replication
 {
     public static partial class Replication
     {
-        public static ReplicationTable GetVersionReplicationTable(Schema schema, string safeSchemaName, string safeVersionTableName)
+        public static ReplicationTable GetVersionReplicationTable(Schema schema, string safeVersionTableName)
         {
-            var versionTable = ConvertSchemaToReplicationTable(schema, safeSchemaName, safeVersionTableName);
+            var versionTable = ConvertSchemaToReplicationTable(schema, safeVersionTableName);
             versionTable.Columns.Add(new ReplicationColumn
             {
                 ColumnName = Constants.ReplicationVersionRecordId,

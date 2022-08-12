@@ -49,8 +49,8 @@ namespace PluginFirebird.API.Replication
                 var safeGoldenTableName = config.GoldenTableName;
                 var safeVersionTableName = config.VersionTableName;
             
-                var goldenTable = GetGoldenReplicationTable(schema, safeSchemaName, safeGoldenTableName);
-                var versionTable = GetVersionReplicationTable(schema, safeSchemaName, safeVersionTableName);
+                var goldenTable = GetGoldenReplicationTable(schema, safeGoldenTableName);
+                var versionTable = GetVersionReplicationTable(schema, safeVersionTableName);
             
                 // transform data
                 var recordVersionIds = record.Versions.Select(v => v.RecordId).ToList();
