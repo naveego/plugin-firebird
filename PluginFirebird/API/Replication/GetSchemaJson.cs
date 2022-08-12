@@ -12,12 +12,6 @@ namespace PluginFirebird.API.Replication
                 {"type", "object"},
                 {"properties", new Dictionary<string, object>
                 {
-                    {"SchemaName", new Dictionary<string, string>
-                    {
-                        {"type", "string"},
-                        {"title", "Schema Name"},
-                        {"description", "Name of schema to put golden and version tables into in Firebird"},
-                    }},
                     {"GoldenTableName", new Dictionary<string, string>
                     {
                         {"type", "string"},
