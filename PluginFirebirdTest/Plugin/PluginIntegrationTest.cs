@@ -662,7 +662,6 @@ namespace PluginMySQLTest.Plugin
                 {
                     SettingsJson = JsonConvert.SerializeObject(new ConfigureReplicationFormData
                     {
-                        SchemaName = "test",
                         GoldenTableName = "gr_test",
                         VersionTableName = "vr_test"
                     })
@@ -714,7 +713,6 @@ namespace PluginMySQLTest.Plugin
                 {
                     SettingsJson = JsonConvert.SerializeObject(new ConfigureReplicationFormData
                     {
-                        SchemaName = "Persons",
                         GoldenTableName = "gr_Persons",
                         VersionTableName = "vr_Persons"
                     })

@@ -19,6 +19,8 @@ namespace PluginFirebird.API.Replication
     {
         private static readonly SemaphoreSlim ReplicationSemaphoreSlim = new SemaphoreSlim(1, 1);
         
+        private const string SafeSchemaName = "Default";
+        
         /// <summary>
         /// Adds and removes records to replication db
         /// Adds and updates available shapes
@@ -45,7 +47,6 @@ namespace PluginFirebird.API.Replication
                 await ReplicationSemaphoreSlim.WaitAsync();
             
                 // setup
-                var safeSchemaName = config.SchemaName;
                 var safeGoldenTableName = config.GoldenTableName;
                 var safeVersionTableName = config.VersionTableName;
             
@@ -84,20 +85,20 @@ namespace PluginFirebird.API.Replication
                 if (recordData.Count == 2)
                 {
                     // delete everything for this record
-                    Logger.Debug($"shapeId: {safeSchemaName} | recordId: {record.RecordId} - DELETE");
+                    Logger.Debug($"shapeId: {SafeSchemaName} | recordId: {record.RecordId} - DELETE");
                     await DeleteRecordAsync(connFactory, goldenTable, record.RecordId);
 
                     foreach (var versionId in previousRecordVersionIds)
                     {
                         Logger.Debug(
-                            $"shapeId: {safeSchemaName} | recordId: {record.RecordId} | versionId: {versionId} - DELETE");
+                            $"shapeId: {SafeSchemaName} | recordId: {record.RecordId} | versionId: {versionId} - DELETE");
                         await DeleteRecordAsync(connFactory, versionTable, versionId);
                     }
                 }
                 else
                 {
                     // update record and remove/add versions
-                    Logger.Debug($"shapeId: {safeSchemaName} | recordId: {record.RecordId} - UPSERT");
+                    Logger.Debug($"shapeId: {SafeSchemaName} | recordId: {record.RecordId} - UPSERT");
                     await UpsertRecordAsync(connFactory, goldenTable, recordData);
                 
                     // delete missing versions
@@ -105,7 +106,7 @@ namespace PluginFirebird.API.Replication
                     foreach (var versionId in missingVersions)
                     {
                         Logger.Debug(
-                            $"shapeId: {safeSchemaName} | recordId: {record.RecordId} | versionId: {versionId} - DELETE");
+                            $"shapeId: {SafeSchemaName} | recordId: {record.RecordId} | versionId: {versionId} - DELETE");
                         await DeleteRecordAsync(connFactory, versionTable, versionId);
                     }
                 
@@ -113,7 +114,7 @@ namespace PluginFirebird.API.Replication
                     foreach (var version in record.Versions)
                     {
                         Logger.Debug(
-                            $"shapeId: {safeSchemaName} | recordId: {record.RecordId} | versionId: {version.RecordId} - UPSERT");
+                            $"shapeId: {SafeSchemaName} | recordId: {record.RecordId} | versionId: {version.RecordId} - UPSERT");
                         var versionData = GetNamedRecordData(schema, version.DataJson);
                         versionData[Constants.ReplicationVersionRecordId] = version.RecordId;
                         versionData[Constants.ReplicationRecordId] = record.RecordId;

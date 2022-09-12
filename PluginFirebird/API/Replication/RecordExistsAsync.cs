@@ -25,7 +25,7 @@ WHERE {1} = '{2}'
                         // --- Note: Firebird DBs only support single-schema databases (multiple tables)
                         //Utility.Utility.GetSafeName(table.SchemaName, '"'),
                         Utility.Utility.GetSafeName(table.TableName, '"'),
-                        Utility.Utility.GetSafeName(table.Columns.Find(c => c.PrimaryKey == true).ColumnName, '"'),
+                        Utility.Utility.GetSafeName(table.Columns.Find(c => c.PrimaryKey).ColumnName, '"'),
                         primaryKeyValue
                     ),
                     conn);

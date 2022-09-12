@@ -1,13 +1,10 @@
 using System;
-using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.VisualBasic;
 using Naveego.Sdk.Logging;
 using Naveego.Sdk.Plugins;
 using Newtonsoft.Json;
 using PluginFirebird.API.Factory;
 using PluginFirebird.DataContracts;
-using PluginFirebird.Helper;
 using Constants = PluginFirebird.API.Utility.Constants;
 
 namespace PluginFirebird.API.Replication
@@ -25,7 +22,6 @@ namespace PluginFirebird.API.Replication
             // get request settings 
             var replicationSettings =
                 JsonConvert.DeserializeObject<ConfigureReplicationFormData>(request.Replication.SettingsJson);
-            var safeSchemaName = replicationSettings.SchemaName;
             var safeGoldenTableName =
                 replicationSettings.GoldenTableName;
             var safeVersionTableName =
@@ -33,7 +29,6 @@ namespace PluginFirebird.API.Replication
 
             var metaDataTable = new ReplicationTable
             {
-                SchemaName = safeSchemaName,
                 TableName = Constants.ReplicationMetaDataTableName,
                 Columns = Constants.ReplicationMetaDataColumns
             };
@@ -42,7 +37,7 @@ namespace PluginFirebird.API.Replication
             var versionTable = GetVersionReplicationTable(request.Schema, safeVersionTableName);
 
             Logger.Info(
-                $"SchemaName: {safeSchemaName} Golden Table: {safeGoldenTableName} Version Table: {safeVersionTableName} job: {request.DataVersions.JobId}");
+                $"SchemaName: {SafeSchemaName} Golden Table: {safeGoldenTableName} Version Table: {safeVersionTableName} job: {request.DataVersions.JobId}");
 
             // get previous metadata
             Logger.Info($"Getting previous metadata job: {request.DataVersions.JobId}");
@@ -79,13 +74,6 @@ namespace PluginFirebird.API.Replication
                 var previousGoldenTable = ConvertSchemaToReplicationTable(previousMetaData.Request.Schema, previousReplicationSettings.GoldenTableName);
 
                 var previousVersionTable = ConvertSchemaToReplicationTable(previousMetaData.Request.Schema, previousReplicationSettings.VersionTableName);
-
-                // check if schema changed
-                if (previousReplicationSettings.SchemaName != replicationSettings.SchemaName)
-                {
-                    dropGoldenReason = SchemaNameChange;
-                    dropVersionReason = SchemaNameChange;
-                }
 
                 // check if golden table name changed
                 if (previousReplicationSettings.GoldenTableName != replicationSettings.GoldenTableName)

@@ -11,7 +11,6 @@ namespace PluginFirebird.API.Replication
         {
             var table = new ReplicationTable
             {
-                SchemaName = "DefaultSchema",
                 TableName = tableName,
                 Columns = new List<ReplicationColumn>()
             };

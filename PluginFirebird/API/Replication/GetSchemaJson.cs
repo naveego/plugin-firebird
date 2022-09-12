@@ -10,6 +10,7 @@ namespace PluginFirebird.API.Replication
             var schemaJsonObj = new Dictionary<string, object>
             {
                 {"type", "object"},
+                {"description", "Firebird databases only contain one schema. The golden record and version tables will be stored in this schema."},
                 {"properties", new Dictionary<string, object>
                 {
                     {"GoldenTableName", new Dictionary<string, string>
@@ -27,7 +28,6 @@ namespace PluginFirebird.API.Replication
                 }},
                 {"required", new []
                 {
-                    "SchemaName",
                     "GoldenTableName",
                     "VersionTableName"
                 }}
