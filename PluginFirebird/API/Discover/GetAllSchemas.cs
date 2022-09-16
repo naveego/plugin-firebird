@@ -19,7 +19,7 @@ namespace PluginFirebird.API.Discover
         //private const string TableType = "TABLE_TYPE";
         private const string ColumnName = "COLUMN_NAME";
         private const string DataType = "DATA_TYPE";
-        private const string ColumnKey = "PK_FIELD_NAME";
+        private const string ColumnKey = "IS_KEY";
         private const string IsNullable = "IS_NULLABLE";
         private const string CharacterMaxLength = "CHARACTER_MAXIMUM_LENGTH";
         private const string DataPrecision = "DATA_PRECISION";
@@ -41,6 +41,10 @@ namespace PluginFirebird.API.Discover
         private const string QueryAllTablesAndColumns = @"select distinct r.rdb$relation_name as TABLE_NAME
     , r.RDB$RELATION_TYPE as TABLE_TYPE
     , rf.RDB$FIELD_NAME as COLUMN_NAME
+    , CASE
+        WHEN pk.PK_FIELD_NAME IS NULL THEN 'NO'
+        ELSE 'YES'
+      END as IS_KEY
     , CASE
         -- If field type is an Integer and field sub type is greater than 0...
         WHEN f.RDB$FIELD_TYPE IN ( 7, 8, 16, 26 ) AND f.RDB$FIELD_SUB_TYPE > 0 THEN
@@ -105,39 +109,35 @@ from
     RDB$RELATIONS AS r
     left join RDB$RELATION_FIELDS AS rf ON r.RDB$RELATION_NAME = rf.RDB$RELATION_NAME
     left join RDB$FIELDS AS f ON rf.RDB$FIELD_SOURCE = f.RDB$FIELD_NAME
+    full join (
+        select distinct r.rdb$relation_name as TABLE_NAME
+            , rf.RDB$FIELD_NAME as PK_FIELD_NAME
+        from
+            RDB$RELATIONS AS r
+            left join rdb$relation_constraints AS rc on r.RDB$RELATION_NAME = rc.RDB$RELATION_NAME
+            left join rdb$indices AS ix on rc.RDB$INDEX_NAME = ix.RDB$INDEX_NAME
+            left join rdb$index_segments AS sg on sg.RDB$INDEX_NAME = ix.RDB$INDEX_NAME
+            left join RDB$RELATION_FIELDS AS rf ON sg.RDB$FIELD_NAME = rf.RDB$FIELD_NAME
+        where
+            SUBSTRING (r.RDB$RELATION_NAME FROM 4 FOR 1) <> '$' -- Ignores system tables (RDB, MON, and SEC)
+                AND rc.RDB$CONSTRAINT_TYPE = 'PRIMARY KEY'
+                {0}
+        order by TABLE_NAME, rf.RDB$FIELD_ID ASC
+    ) AS pk ON r.RDB$RELATION_NAME = pk.TABLE_NAME
+        AND rf.RDB$FIELD_NAME = pk.PK_FIELD_NAME
 where
     SUBSTRING (r.RDB$RELATION_NAME FROM 4 FOR 1) <> '$' -- Ignores system tables (RDB, MON, and SEC)
         {0}
 order by TABLE_NAME, rf.RDB$FIELD_ID ASC";
-
-        private const string QueryPrimaryKeyColumns = @"select distinct r.rdb$relation_name as TABLE_NAME
-    , rf.RDB$FIELD_NAME as PK_FIELD_NAME
-from
-    RDB$RELATIONS AS r
-    left join rdb$relation_constraints AS rc on r.RDB$RELATION_NAME = rc.RDB$RELATION_NAME
-    left join rdb$indices AS ix on rc.RDB$INDEX_NAME = ix.RDB$INDEX_NAME
-    left join rdb$index_segments AS sg on sg.RDB$INDEX_NAME = ix.RDB$INDEX_NAME
-    left join RDB$RELATION_FIELDS AS rf ON sg.RDB$FIELD_NAME = rf.RDB$FIELD_NAME
-where
-    SUBSTRING (r.RDB$RELATION_NAME FROM 4 FOR 1) <> '$' -- Ignores system tables (RDB, MON, and SEC)
-        AND (sg.RDB$INDEX_NAME IS NULL OR SUBSTRING (sg.RDB$INDEX_NAME FROM 4 FOR 1) <> '$')
-        AND rc.RDB$CONSTRAINT_TYPE = 'PRIMARY KEY'
-            {0}
-order by TABLE_NAME, rf.RDB$FIELD_ID ASC";
         
-        private const string QueryWhereTableClause = @"AND r.RDB$RELATION_NAME = '{0}'";
+        private const string QueryWhereTableClause = "AND r.RDB$RELATION_NAME = '{0}'";
 
-        public static string GetDiscoverQuery(bool primaryKeys, string tableName = null)
+        public static string GetDiscoverQuery(string tableName = null)
         {
             var whereClause = "";
             if (!string.IsNullOrWhiteSpace(tableName))
             {
                 whereClause = string.Format(QueryWhereTableClause, tableName);
-            }
-
-            if (primaryKeys)
-            {
-                return string.Format(QueryPrimaryKeyColumns, whereClause);
             }
 
             return string.Format(QueryAllTablesAndColumns, whereClause);
@@ -146,120 +146,62 @@ order by TABLE_NAME, rf.RDB$FIELD_ID ASC";
         public static async IAsyncEnumerable<Schema> GetAllSchemas(IConnectionFactory connFactory, int sampleSize = 5)
         {
             var conn = connFactory.GetConnection();
-            var finalSchemas = new List<Schema>();
 
-            // Pass 1: Get All Columns
             try
             {
                 await conn.OpenAsync();
-                
-                var cmd1 = connFactory.GetCommand(GetDiscoverQuery(false), conn);
-                var reader1 = await cmd1.ExecuteReaderAsync();
 
-                Schema currentSchema = null;
+                var cmd1 = connFactory.GetCommand(GetDiscoverQuery(), conn);
+                var reader = await cmd1.ExecuteReaderAsync();
+
+                Schema schema = null;
                 var currentSchemaId = "";
-                while (await reader1.ReadAsync())
+                while (await reader.ReadAsync())
                 {
-                    var schemaId = $"{Utility.Utility.GetSafeName(reader1.GetValueById(TableName).ToString()?.Trim(), '"')}";
-                    
+                    var schemaId = $"{Utility.Utility.GetSafeName(reader.GetValueById(TableName).ToString()?.Trim(), '"')}";
+
                     if (schemaId != currentSchemaId)
                     {
-                        // add previous schema to a list
-                        if (currentSchema != null)
+                        // return previous schema
+                        if (schema != null)
                         {
-                            //yield return await AddSampleAndCount(connFactory, currentSchema, sampleSize);
-                            finalSchemas.Add(currentSchema);
+                            yield return await AddSampleAndCount(connFactory, schema, sampleSize);
                         }
 
                         // start new schema
                         currentSchemaId = schemaId;
                         var parts = DecomposeSafeName(currentSchemaId).TrimEscape();
-                        currentSchema = new Schema
+                        schema = new Schema
                         {
                             Id = currentSchemaId,
                             Name = $"{parts.Table.Trim()}",
-                            DataFlowDirection = Schema.Types.DataFlowDirection.Read,
-                            Description = ""
+                            DataFlowDirection = Schema.Types.DataFlowDirection.Read
                         };
                     }
 
                     // add column to schema
                     var property = new Property
                     {
-                        Id = Utility.Utility.GetSafeName(reader1.GetValueById(ColumnName).ToString()?.Trim()),
-                        Name = reader1.GetValueById(ColumnName).ToString()?.Trim(),
-                        IsNullable = reader1.GetValueById(IsNullable).ToString() == "YES",
-                        Type = GetType(reader1.GetValueById(DataType).ToString()?.Trim(),
-                            reader1.GetValueById(CharacterMaxLength)),
-                        TypeAtSource = GetTypeAtSource(
-                            reader1.GetValueById(DataType).ToString()?.Trim(),
-                            reader1.GetValueById(CharacterMaxLength),
-                            reader1.GetValueById(DataPrecision),
-                            reader1.GetValueById(DataScale))
+                        Id = Utility.Utility.GetSafeName(reader.GetValueById(ColumnName).ToString()?.Trim()),
+                        Name = reader.GetValueById(ColumnName).ToString()?.Trim(),
+                        IsKey = reader.GetValueById(ColumnKey).ToString() == "YES",
+                        IsNullable = reader.GetValueById(IsNullable).ToString() == "YES",
+                        Type = GetType(reader.GetValueById(DataType).ToString()?.Trim()),
+                        TypeAtSource = GetTypeAtSource(reader.GetValueById(DataType).ToString()?.Trim(),
+                            reader.GetValueById(CharacterMaxLength))
                     };
-                    currentSchema?.Properties.Add(property);
+                    schema?.Properties.Add(property);
                 }
-                
-                if (currentSchema != null)
+
+                if (schema != null)
                 {
                     // get sample and count
-                    //yield return await AddSampleAndCount(connFactory, currentSchema, sampleSize);
-                    finalSchemas.Add(currentSchema);
-                }
-                
-                // Pass 2: Get All Primary Keys for each Table
-                var cmd2 = connFactory.GetCommand(GetDiscoverQuery(true), conn);
-                var reader2 = await cmd2.ExecuteReaderAsync();
-
-                Schema currentPkSchema = null;
-                var currentPkSchemaId = "";
-                while (await reader2.ReadAsync())
-                {
-                    var schemaId =
-                        $"{Utility.Utility.GetSafeName(reader2.GetValueById(TableName).ToString()?.Trim(), '"')}";
-
-                    if (currentPkSchemaId != schemaId)
-                    {
-                        if (currentPkSchema != null)
-                        {
-                            // remove the schema from the final list
-                            finalSchemas.RemoveAll(s => s.Id == currentPkSchemaId);
-
-                            // get sample and count
-                            yield return await AddSampleAndCount(connFactory, currentPkSchema, sampleSize);
-                        }
-
-                        // find matching schema in the list
-                        currentPkSchemaId = schemaId;
-                        currentPkSchema = finalSchemas.FirstOrDefault(s => s.Id == schemaId);
-                    }
-
-                    // Find the PK column name in the schema and switch on the PK flag
-                    var pkColumnName =
-                        $"{Utility.Utility.GetSafeName(reader2.GetValueById(ColumnKey).ToString()?.Trim(), '"')}"
-                            .Trim('"');
-                    var pkColumn = currentPkSchema.Properties.FirstOrDefault(p => p.Name == pkColumnName);
-                    pkColumn.IsKey = true;
-                }
-
-                if (currentPkSchema != null)
-                {
-                    // remove the schema from the final list
-                    finalSchemas.RemoveAll(s => s.Id == currentPkSchemaId);
-
-                    // get sample and count
-                    yield return await AddSampleAndCount(connFactory, currentPkSchema, sampleSize);
+                    yield return await AddSampleAndCount(connFactory, schema, sampleSize);
                 }
             }
             finally
             {
                 await conn.CloseAsync();
-            }
-            
-            // return any remaining schemas
-            foreach (var s in finalSchemas)
-            {
-                yield return await AddSampleAndCount(connFactory, s, sampleSize);
             }
         }
 

@@ -245,20 +245,19 @@ namespace PluginMySQLTest.Plugin
             Assert.IsType<DiscoverSchemasResponse>(response);
             Assert.Equal(28, response.Schemas.Count);
 
-            var schema = response.Schemas[0];
-            Assert.Equal($"\"BUSINESSES\"", schema.Id);
-            Assert.Equal("BUSINESSES", schema.Name);
+            var schema = response.Schemas.FirstOrDefault(s => s.Name == "PERSONS");
+            Assert.Equal($"\"PERSONS\"", schema.Id);
+            Assert.Equal("PERSONS", schema.Name);
             Assert.Equal($"", schema.Query);
-            Assert.Empty(schema.Sample);
-            Assert.Equal(2, schema.Properties.Count);
+            Assert.Equal(5, schema.Properties.Count);
 
-            var property = schema.Properties[1];
-            Assert.Equal("\"REVENUE\"", property.Id);
-            Assert.Equal("REVENUE", property.Name);
+            var property = schema.Properties[4];
+            Assert.Equal("\"PERSONID\"", property.Id);
+            Assert.Equal("PERSONID", property.Name);
             Assert.Equal("", property.Description);
-            Assert.Equal(PropertyType.Decimal, property.Type);
-            Assert.False(property.IsKey);
-            Assert.True(property.IsNullable);
+            Assert.Equal(PropertyType.Integer, property.Type);
+            Assert.True(property.IsKey);
+            Assert.False(property.IsNullable);
 
             // cleanup
             await channel.ShutdownAsync();

@@ -13,12 +13,10 @@ namespace PluginFirebird.API.Discover
             int sampleSize = 5)
         {
             var decomposed = DecomposeSafeName(schema.Id).TrimEscape();
-            var refreshProperties = new List<Property>();
             var conn = string.IsNullOrWhiteSpace(decomposed.Database)
                 ? connFactory.GetConnection()
                 : connFactory.GetConnection(decomposed.Database);
 
-            // Pass 1: Get all columns for table
             try
             {
                 await conn.OpenAsync();
@@ -27,8 +25,11 @@ namespace PluginFirebird.API.Discover
                 // FirebirdDB does not support multi-schema databases,
                 // rather several smaller databases acting as isolated, disconnected schemas
                 
-                var cmd = connFactory.GetCommand(GetDiscoverQuery(false, decomposed.Table), conn);
+                // var cmd = connFactory.GetCommand(
+                //     string.Format(QueryTableAndColumns, decomposed.Schema, decomposed.Table), conn);
+                var cmd = connFactory.GetCommand(GetDiscoverQuery(decomposed.Table), conn);
                 var reader = await cmd.ExecuteReaderAsync();
+                var refreshProperties = new List<Property>();
 
                 while (await reader.ReadAsync())
                 {
@@ -37,27 +38,13 @@ namespace PluginFirebird.API.Discover
                     {
                         Id = Utility.Utility.GetSafeName(reader.GetValueById(ColumnName).ToString()?.Trim(), '"'),
                         Name = reader.GetValueById(ColumnName).ToString()?.Trim(),
+                        IsKey = reader.GetValueById(ColumnKey).ToString() == "YES",
                         IsNullable = reader.GetValueById(IsNullable).ToString() == "YES",
                         Type = GetType(reader.GetValueById(DataType).ToString()?.Trim()),
                         TypeAtSource = GetTypeAtSource(reader.GetValueById(DataType).ToString()?.Trim(),
                             reader.GetValueById(CharacterMaxLength))
                     };
                     refreshProperties.Add(property);
-                }
-                
-                // Pass 2: Find PK columns and mark them as PK 
-                var pkCmd = connFactory.GetCommand(GetDiscoverQuery(true, decomposed.Table), conn);
-                var pkReader = await pkCmd.ExecuteReaderAsync();
-                
-                while (await pkReader.ReadAsync())
-                {
-                    var pkColName = pkReader.GetValueById(ColumnKey).ToString()?.Trim();
-                    var pkCol = refreshProperties.FirstOrDefault(p => p.Name == pkColName);
-
-                    if (pkCol != null)
-                    {
-                        pkCol.IsKey = true;
-                    }
                 }
 
                 // add properties
@@ -83,7 +70,7 @@ namespace PluginFirebird.API.Discover
             {
                 await conn.OpenAsync();
 
-                var cmd = connFactory.GetCommand(GetDiscoverQuery(false, decomposed.Table), conn);
+                var cmd = connFactory.GetCommand(GetDiscoverQuery(decomposed.Table), conn);
                 var reader = await cmd.ExecuteReaderAsync();
 
                 while (await reader.ReadAsync())
@@ -93,6 +80,7 @@ namespace PluginFirebird.API.Discover
                     {
                         Id = Utility.Utility.GetSafeName(reader.GetValueById(ColumnName).ToString()),
                         Name = reader.GetValueById(ColumnName).ToString()?.Trim(),
+                        IsKey = reader.GetValueById(ColumnKey).ToString() == "YES",
                         IsNullable = reader.GetValueById(IsNullable).ToString() == "YES",
                         Type = GetType(
                             reader.GetValueById(DataType).ToString(),
@@ -116,21 +104,6 @@ namespace PluginFirebird.API.Discover
 
                         property.IsKey = prevProp.IsKey || property.IsKey;
                         refreshProperties.Add(property);
-                    }
-                }
-                
-                // Find PK columns and mark them as PK
-                var pkCmd = connFactory.GetCommand(GetDiscoverQuery(true, decomposed.Table), conn);
-                var pkReader = await pkCmd.ExecuteReaderAsync();
-                
-                while (await pkReader.ReadAsync())
-                {
-                    var pkColName = pkReader.GetValueById(ColumnKey).ToString()?.Trim();
-                    var pkCol = refreshProperties.FirstOrDefault(p => p.Name == pkColName);
-
-                    if (pkCol != null)
-                    {
-                        pkCol.IsKey = true;
                     }
                 }
 
