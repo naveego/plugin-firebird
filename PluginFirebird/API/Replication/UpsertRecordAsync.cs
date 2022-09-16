@@ -57,7 +57,7 @@ namespace PluginFirebird.API.Replication
                             {
                                 switch (column.DataType)
                                 {
-                                    case "date":
+                                    case "DATE":
                                         if (DateTime.TryParse(rawValue.ToString(), out var date))
                                         {
                                             rawValue = date.ToString("yyyy-MM-dd");
@@ -68,7 +68,7 @@ namespace PluginFirebird.API.Replication
                                         }
 
                                         break;
-                                    case "datetime":
+                                    case "TIMESTAMP":
                                         if (DateTime.TryParse(rawValue.ToString(), out var datetime))
                                         {
                                             rawValue = datetime.ToString("yyyy-MM-dd HH:mm:ss");
@@ -78,7 +78,7 @@ namespace PluginFirebird.API.Replication
                                             rawValue = null;
                                         }
                                         break;
-                                    case "time":
+                                    case "TIME":
                                         if (TimeSpan.TryParse(rawValue.ToString(), out var time))
                                         {
                                             rawValue = time.ToString("c");
@@ -135,7 +135,7 @@ namespace PluginFirebird.API.Replication
                                 {
                                     switch (column.DataType)
                                     {
-                                        case "date":
+                                        case "DATE":
                                             if (DateTime.TryParse(rawValue.ToString(), out var date))
                                             {
                                                 rawValue = date.ToString("yyyy-MM-dd");
@@ -146,7 +146,7 @@ namespace PluginFirebird.API.Replication
                                             }
 
                                             break;
-                                        case "datetime":
+                                        case "TIMESTAMP":
                                             if (DateTime.TryParse(rawValue.ToString(), out var datetime))
                                             {
                                                 rawValue = datetime.ToString("yyyy-MM-dd HH:mm:ss");
@@ -157,7 +157,7 @@ namespace PluginFirebird.API.Replication
                                             }
 
                                             break;
-                                        case "time":
+                                        case "TIME":
                                             if (TimeSpan.TryParse(rawValue.ToString(), out var time))
                                             {
                                                 rawValue = time.ToString("c");

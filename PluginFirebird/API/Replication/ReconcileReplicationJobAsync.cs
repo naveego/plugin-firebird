@@ -11,11 +11,12 @@ namespace PluginFirebird.API.Replication
 {
     public static partial class Replication
     {
-        private const string SchemaNameChange = "Schema name changed";
         private const string GoldenNameChange = "Golden record name changed";
         private const string VersionNameChange = "Version name changed";
         private const string JobDataVersionChange = "Job data version changed";
         private const string ShapeDataVersionChange = "Shape data version changed";
+        private const string GoldenTableMissing = "Golden record table missing";
+        private const string VersionTableMissing = "Version table missing";
         
         public static async Task ReconcileReplicationJobAsync(IConnectionFactory connFactory, PrepareWriteRequest request)
         {
@@ -41,7 +42,8 @@ namespace PluginFirebird.API.Replication
 
             // get previous metadata
             Logger.Info($"Getting previous metadata job: {request.DataVersions.JobId}");
-            var previousMetaData = await GetPreviousReplicationMetaDataAsync(connFactory, request.DataVersions.JobId, metaDataTable);
+            var previousMetaData =
+                await GetPreviousReplicationMetaDataAsync(connFactory, request.DataVersions.JobId, metaDataTable);
             Logger.Info($"Got previous metadata job: {request.DataVersions.JobId}");
 
             // create current metadata
@@ -70,10 +72,12 @@ namespace PluginFirebird.API.Replication
                 var previousReplicationSettings =
                     JsonConvert.DeserializeObject<ConfigureReplicationFormData>(previousMetaData.Request.Replication
                         .SettingsJson);
-                
-                var previousGoldenTable = ConvertSchemaToReplicationTable(previousMetaData.Request.Schema, previousReplicationSettings.GoldenTableName);
 
-                var previousVersionTable = ConvertSchemaToReplicationTable(previousMetaData.Request.Schema, previousReplicationSettings.VersionTableName);
+                var previousGoldenTable = ConvertSchemaToReplicationTable(previousMetaData.Request.Schema,
+                    previousReplicationSettings.GoldenTableName);
+
+                var previousVersionTable = ConvertSchemaToReplicationTable(previousMetaData.Request.Schema,
+                    previousReplicationSettings.VersionTableName);
 
                 // check if golden table name changed
                 if (previousReplicationSettings.GoldenTableName != replicationSettings.GoldenTableName)
@@ -88,7 +92,8 @@ namespace PluginFirebird.API.Replication
                 }
 
                 // check if job data version changed
-                if (metaData.Request.DataVersions.JobDataVersion > previousMetaData.Request.DataVersions.JobDataVersion)
+                if (metaData.Request.DataVersions.JobDataVersion >
+                    previousMetaData.Request.DataVersions.JobDataVersion)
                 {
                     dropGoldenReason = JobDataVersionChange;
                     dropVersionReason = JobDataVersionChange;
@@ -107,8 +112,6 @@ namespace PluginFirebird.API.Replication
                 {
                     Logger.Info($"Dropping golden table: {dropGoldenReason}");
                     await DropTableAsync(connFactory, previousGoldenTable);
-
-                    await EnsureTableAsync(connFactory, goldenTable);
                 }
 
                 // drop previous version table
@@ -116,9 +119,11 @@ namespace PluginFirebird.API.Replication
                 {
                     Logger.Info($"Dropping version table: {dropVersionReason}");
                     await DropTableAsync(connFactory, previousVersionTable);
-
-                    await EnsureTableAsync(connFactory, versionTable);
                 }
+                
+                // ensure current tables exist
+                await EnsureTableAsync(connFactory, goldenTable);
+                await EnsureTableAsync(connFactory, versionTable);
             }
 
             // save new metadata

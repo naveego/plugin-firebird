@@ -46,11 +46,8 @@ WHERE {Utility.Utility.GetSafeName(Constants.ReplicationMetaDataJobId, '"')} = '
                 // try to insert
                 var cmd = connFactory.GetCommand(
                     string.Format(InsertMetaDataQuery,
-                        // Only single-schema databases in Firebird
-                        //Utility.Utility.GetSafeName(table.SchemaName, '"'),
                         Utility.Utility.GetSafeName(table.TableName, '"'),
                         metaData.Request.DataVersions.JobId,
-                        JsonConvert.SerializeObject(metaData.Request), //.Replace("\\", "\\\\")
                         JsonConvert.SerializeObject(metaData.Request),
                         metaData.ReplicatedShapeId,
                         metaData.ReplicatedShapeName,
@@ -67,10 +64,8 @@ WHERE {Utility.Utility.GetSafeName(Constants.ReplicationMetaDataJobId, '"')} = '
                     // update if it failed
                     var cmd = connFactory.GetCommand(
                         string.Format(UpdateMetaDataQuery,
-                            // Only single-schema databases in Firebird
-                            //Utility.Utility.GetSafeName(table.SchemaName, '"'),
                             Utility.Utility.GetSafeName(table.TableName, '"'),
-                            JsonConvert.SerializeObject(metaData.Request), //.Replace("\\", "\\\\")
+                            JsonConvert.SerializeObject(metaData.Request),
                             metaData.ReplicatedShapeId,
                             metaData.ReplicatedShapeName,
                             metaData.Timestamp,

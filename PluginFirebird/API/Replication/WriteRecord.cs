@@ -184,12 +184,7 @@ namespace PluginFirebird.API.Replication
             foreach (var property in schema.Properties)
             {
                 var key = property.Id;
-                if (!finalRecordData.ContainsKey(key.Trim().ToAllCaps()))
-                {
-                    continue;
-                }
-
-                namedData.Add(property.Name, finalRecordData[key]);
+                namedData.Add(property.Name, finalRecordData[key.Trim().ToAllCaps()]);
             }
 
             return namedData;

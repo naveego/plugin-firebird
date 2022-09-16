@@ -58,7 +58,8 @@ namespace PluginMySQLTest.Plugin
                     {
                         Id = "Name",
                         Name = "Name",
-                        Type = PropertyType.String
+                        Type = PropertyType.String,
+                        TypeAtSource = "VARCHAR(300)"
                     }
                 }
             };
@@ -108,44 +109,36 @@ namespace PluginMySQLTest.Plugin
                         Name = "PERSONID",
                         Type = PropertyType.Integer,
                         IsKey = true
-                    }
-                    /*new Property
-                    {
-                        Id = "Id",
-                        Name = "Id",
-                        Type = PropertyType.Integer,
-                        IsKey = true
-                    },
-                    new Property
-                    {
-                        Id = "Name",
-                        Name = "Name",
-                        Type = PropertyType.String
                     },
                     new Property
                     {
                         Id = "DateTime",
                         Name = "DateTime",
-                        Type = PropertyType.Datetime
+                        Type = PropertyType.Datetime,
+                        IsKey = false
                     },
                     new Property
                     {
                         Id = "Date",
                         Name = "Date",
-                        Type = PropertyType.Date
+                        Type = PropertyType.Date,
+                        IsKey = false
                     },
                     new Property
                     {
                         Id = "Time",
                         Name = "Time",
-                        Type = PropertyType.Time
+                        Type = PropertyType.Time,
+                        IsKey = false
                     },
                     new Property
                     {
                         Id = "Decimal",
                         Name = "Decimal",
-                        Type = PropertyType.Decimal
-                    },*/
+                        Type = PropertyType.Decimal,
+                        TypeAtSource = "DECIMAL(10,2)",
+                        IsKey = false
+                    }
                 }
             };
         }
@@ -250,15 +243,12 @@ namespace PluginMySQLTest.Plugin
 
             // assert
             Assert.IsType<DiscoverSchemasResponse>(response);
-            Assert.Equal(30, response.Schemas.Count);
+            Assert.Equal(28, response.Schemas.Count);
 
             var schema = response.Schemas[0];
-            // Assert.Equal($"`classicmodels`.`customers`", schema.Id);
-            // Assert.Equal("classicmodels.customers", schema.Name);
             Assert.Equal($"\"BUSINESSES\"", schema.Id);
             Assert.Equal("BUSINESSES", schema.Name);
             Assert.Equal($"", schema.Query);
-            //Assert.Equal(0, schema.Sample.Count);
             Assert.Empty(schema.Sample);
             Assert.Equal(2, schema.Properties.Count);
 
@@ -483,19 +473,6 @@ namespace PluginMySQLTest.Plugin
             Assert.Equal(22, records.Count);
 
             var record = JsonConvert.DeserializeObject<Dictionary<string, object>>(records[0].DataJson);
-            /*Assert.Equal((long) 103, record["`customerNumber`"]);
-            Assert.Equal("Atelier graphique", record["`customerName`"]);
-            Assert.Equal("Schmitt", record["`contactLastName`"]);
-            Assert.Equal("Carine", record["`contactFirstName`"]);
-            Assert.Equal("40.32.2555", record["`phone`"]);
-            Assert.Equal("54, rue Royale", record["`addressLine1`"]);
-            Assert.Equal("", record["`addressLine2`"]);
-            Assert.Equal("Nantes", record["`city`"]);
-            Assert.Equal("", record["`state`"]);
-            Assert.Equal("44000", record["`postalCode`"]);
-            Assert.Equal("France", record["`country`"]);
-            Assert.Equal((long) 1370, record["`salesRepEmployeeNumber`"]);
-            Assert.Equal("21000.00", record["`creditLimit`"]);*/
             Assert.Equal("Bell", record["\"LASTNAME\""]);
             Assert.Equal("Kiara", record["\"FIRSTNAME\""]);
             Assert.Equal("7553 Beech Drive", record["\"ADDRESS\""]);
@@ -560,13 +537,6 @@ namespace PluginMySQLTest.Plugin
             Assert.Equal(22, records.Count);
 
             var record = JsonConvert.DeserializeObject<Dictionary<string, object>>(records[0].DataJson);
-            /*Assert.Equal((long) 10100, record["`orderNumber`"]);
-            Assert.Equal(DateTime.Parse("2003-01-06"), record["`orderDate`"]);
-            Assert.Equal(DateTime.Parse("2003-01-13"), record["`requiredDate`"]);
-            Assert.Equal(DateTime.Parse("2003-01-10"), record["`shippedDate`"]);
-            Assert.Equal("Shipped", record["`status`"]);
-            Assert.Equal("", record["`comments`"]);
-            Assert.Equal((long) 363, record["`customerNumber`"]);*/
             Assert.Equal((long) 1, record["\"PERSONID\""]);
             Assert.Equal("Warner, NH", record["\"CITY\""]);
             Assert.Equal("7553 Beech Drive", record["\"ADDRESS\""]);
@@ -734,14 +704,33 @@ namespace PluginMySQLTest.Plugin
                         Action = Record.Types.Action.Upsert,
                         CorrelationId = "Persons",
                         RecordId = "record1",
-                        //DataJson = $"{{\"Id\":1,\"Name\":\"Test Company\",\"DateTime\":\"{DateTime.Today}\",\"Date\":\"{DateTime.Now.Date:mm/dd/yyyy}\",\"Time\":\"{DateTime.Now:hh:mm:ss}\",\"Decimal\":\"13.04\"}}",
-                        DataJson = $"{{\"Lastname\":'Reynolds',\"Firstname\":'Laura',\"ADDRESS\":'921 Cone Street',\"CITY\":'Petosky, MI',\"PERSONID\":4}}",
+                        DataJson = @$"{{
+    ""Lastname"":'Reynolds',
+    ""Firstname"":'Laura',
+    ""ADDRESS"":'921 Cone Street',
+    ""CITY"":'Petosky, MI',
+    ""PERSONID"":4,
+    ""DateTime"":'{DateTime.Now:MM/dd/yyyy HH:mm:ss}',
+    ""Date"":'{DateTime.Now.Date:MM/dd/yyyy}',
+    ""Time"":'{DateTime.Now:HH:mm:ss}',
+    ""Decimal"":13.04
+}}".Replace("\n", "").Replace("    ", ""),
                         Versions =
                         {
                             new RecordVersion
                             {
                                 RecordId = "version1",
-                                DataJson = $"{{\"LASTNAME\":'Reynolds',\"FIRSTNAME\":'Laura',\"ADDRESS\":'921 Cone Street',\"CITY\":'Petosky, MI',\"PERSONID\":4}}"
+                                DataJson = @$"{{
+    ""Lastname"":'Reynolds',
+    ""Firstname"":'Laura',
+    ""ADDRESS"":'921 Cone Street',
+    ""CITY"":'Petosky, MI',
+    ""PERSONID"":4,
+    ""DateTime"":'{DateTime.Now:MM/dd/yyyy HH:mm:ss}',
+    ""Date"":'{DateTime.Now.Date:MM/dd/yyyy}',
+    ""Time"":'{DateTime.Now:HH:mm:ss}',
+    ""Decimal"":13.04
+}}".Replace("\n", "").Replace("    ", "")
                             }
                         }
                     }

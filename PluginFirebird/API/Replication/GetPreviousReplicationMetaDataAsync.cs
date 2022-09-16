@@ -21,20 +21,20 @@ namespace PluginFirebird.API.Replication
             string jobId,
             ReplicationTable table)
         {
+            long metaDataCount;
             var conn = connFactory.GetConnection();
+            ReplicationMetaData replicationMetaData = null;
 
+            // 1st: Check if replication metadata exists
             try
             {
-                ReplicationMetaData replicationMetaData = null;
-
                 // ensure replication metadata table
                 await EnsureTableAsync(connFactory, table);
 
                 // check if metadata exists
-
                 await conn.OpenAsync();
 
-                // use count query to determine # of rows
+                // --- use count query to determine # of rows
                 var countCmd = connFactory.GetCommand(
                     string.Format(QueryCountMetaData,
                         //Utility.Utility.GetSafeName(table.SchemaName, '"'),
@@ -45,7 +45,10 @@ namespace PluginFirebird.API.Replication
                 var countReader = await countCmd.ExecuteReaderAsync();
                 await countReader.ReadAsync();
 
-                var metaDataCount = (long)countReader.GetValueById("\"COUNT\"");
+                metaDataCount = (long)countReader.GetValueById("\"COUNT\"");
+                
+                // 2nd: Obtain replication table from database
+                // Execute on another connection to avoid lock conflicts
                 if (metaDataCount > 0) // metadata exists
                 {
                     var cmd = connFactory.GetCommand(
@@ -57,8 +60,6 @@ namespace PluginFirebird.API.Replication
                         conn);
                     var reader = await cmd.ExecuteReaderAsync();
 
-                    // if (reader.HasRows())
-                    // {
                     await reader.ReadAsync();
 
                     var request = JsonConvert.DeserializeObject<PrepareWriteRequest>(
@@ -77,14 +78,13 @@ namespace PluginFirebird.API.Replication
                         ReplicatedShapeId = shapeId,
                         Timestamp = timestamp
                     };
-                    //}
                 }
 
                 return replicationMetaData;
             }
             catch (Exception e)
             {
-                Logger.Error(e, e.Message);
+                Console.WriteLine(e);
                 throw;
             }
             finally

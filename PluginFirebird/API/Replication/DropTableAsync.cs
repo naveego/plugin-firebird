@@ -1,5 +1,6 @@
+using System;
 using System.Threading.Tasks;
-using Naveego.Sdk.Plugins;
+using Naveego.Sdk.Logging;
 using PluginFirebird.API.Factory;
 using PluginFirebird.DataContracts;
 
@@ -7,10 +8,10 @@ namespace PluginFirebird.API.Replication
 {
     public static partial class Replication
     {
-        private static readonly string DropTableQuery = @"DROP TABLE IF EXISTS {0}";
-
         public static async Task DropTableAsync(IConnectionFactory connFactory, ReplicationTable table)
         {
+            if (!await TableExistsAsync(connFactory, table)) return; // table doesn't exist
+            
             var conn = connFactory.GetConnection();
 
             try
@@ -18,9 +19,7 @@ namespace PluginFirebird.API.Replication
                 await conn.OpenAsync();
 
                 var cmd = connFactory.GetCommand(
-                    string.Format(DropTableQuery,
-                        Utility.Utility.GetSafeName(table.TableName, '"')
-                    ),
+                    $"DROP TABLE {Utility.Utility.GetSafeName(table.TableName, '"')}",
                     conn);
                 await cmd.ExecuteNonQueryAsync();
             }

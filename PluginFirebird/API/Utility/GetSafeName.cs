@@ -4,7 +4,7 @@ namespace PluginFirebird.API.Utility
     {
         public static string GetSafeName(string unsafeName, char escapeChar = '"')
         {
-            return $"{escapeChar}{unsafeName}{escapeChar}";
+            return $"{escapeChar}{unsafeName.Trim()}{escapeChar}";
         }
     }
 }

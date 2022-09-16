@@ -55,7 +55,7 @@ namespace PluginFirebird.API.Discover
                                 Name = colName,
                                 Description = "",
                                 Type = GetPropertyType(row),
-                                // TypeAtSource = row["DataType"].ToString(),
+                                //TypeAtSource = row["DataType"].ToString(),
                                 IsKey = Boolean.Parse(row["IsKey"].ToString()),
                                 IsNullable = Boolean.Parse(row["AllowDBNull"].ToString()),
                                 IsCreateCounter = false,
